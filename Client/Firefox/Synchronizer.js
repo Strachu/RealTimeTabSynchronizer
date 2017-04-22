@@ -1,9 +1,12 @@
 var synchronizerServer = $.connection.synchronizerHub;
+var tabsCreatedBySynchronizer = {} // TODO Should this be done server side?
 
 synchronizerServer.client.appendEmptyTab = function() {
     console.log("appendEmptyTab");
 
-    browser.tabs.create({});
+    browser.tabs.create({}).then(function(tab) {
+        tabsCreatedBySynchronizer[tab.id] = true;
+    });
 };
 
 synchronizerServer.client.moveTab = function(oldTabIndex, newTabIndex) {
@@ -22,7 +25,7 @@ synchronizerServer.client.changeTabUrl = function(tabIndex, newUrl) {
 
 // TODO Reconnect on connection lost
 $.connection.hub.logging = true;
-$.connection.hub.url = "http://localhost:5000/signalr" // TODO - Move to config page
+$.connection.hub.url = "http://192.168.0.2:31711/signalr" // TODO - Move to config page
 $.connection.hub.start()
     .done(function() {
         console.log("Connected to server.");
@@ -41,7 +44,9 @@ var addListeners = function() {
         console.log("OnCreated:");
         console.log(createdTab);
 
-        synchronizerServer.server.addTab();
+        if (!tabsCreatedBySynchronizer.hasOwnProperty(createdTab.id)) {
+            synchronizerServer.server.addTab();
+        }
     });
 
     browser.tabs.onRemoved.addListener(function(tabId) {

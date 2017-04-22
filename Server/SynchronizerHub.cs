@@ -14,7 +14,7 @@ public class SynchronizerHub : Hub
 	{
 		mLogger.LogInformation("Adding a new tab.");
 
-		Clients.AllExcept(Clients.Caller).appendEmptyTab();
+		Clients.Others.appendEmptyTab();
 
 		mLogger.LogInformation("Finished adding new tab.");
 	}
@@ -23,7 +23,7 @@ public class SynchronizerHub : Hub
 	{
 		mLogger.LogInformation($"Moving a tab from {oldTabIndex} to {newTabIndex}.");
 
-		Clients.AllExcept(Clients.Caller).moveTab(oldTabIndex, newTabIndex);
+		Clients.Others.moveTab(oldTabIndex, newTabIndex);
 
 		mLogger.LogInformation("Finished moving a tab.");
 	}
@@ -32,7 +32,7 @@ public class SynchronizerHub : Hub
 	{
 		mLogger.LogInformation($"Closing a tab at index {tabIndex}.");
 
-		Clients.AllExcept(Clients.Caller).closeTab(tabIndex);		
+		Clients.Others.closeTab(tabIndex);		
 
 		mLogger.LogInformation("Finished moving a tab.");
 	}
@@ -41,7 +41,7 @@ public class SynchronizerHub : Hub
 	{
 		mLogger.LogInformation($"Changing tab {tabIndex} url to {newUrl}.");
 
-		Clients.AllExcept(Clients.Caller).changeTabUrl(tabIndex, newUrl);				
+		Clients.Others.changeTabUrl(tabIndex, newUrl);				
 
 		mLogger.LogInformation("Finished changing a url of tab.");
 	}
