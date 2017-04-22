@@ -5,7 +5,7 @@
 	"author": "Patryk Strach",
 	"version": "1.0",
 
-	"description": "Synchronizes in real time open tabs between browsers on different machines. Self deploy solution not using any public server.",
+	"description": "Synchronizes in real time open tabs between browsers on different machines. A self hosting solution not using any public server.",
 
 	"applications": {
 	  "gecko": {
@@ -16,6 +16,6 @@
 	"permissions": ["tabs"],
 
 	"background": {
-		"scripts": ["../Dependencies/jquery-3.2.1.min.js", "Synchronizer.js"]
+		"scripts": ["jquery-3.2.1.min.js", "jquery.signalr-2.2.1.min.js", "signalr.hubs.js", "Synchronizer.js"]
 	}
 }
