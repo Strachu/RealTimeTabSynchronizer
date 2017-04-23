@@ -25,6 +25,10 @@ synchronizerServer.client.moveTab = function(oldTabIndex, newTabIndex) {
 
 synchronizerServer.client.closeTab = function(tabIndex) {
     console.log("closeTab(" + tabIndex + ")");
+
+    browser.tabs.query({ index: tabIndex }).then(function(tabs) {
+        browser.tabs.remove(tabs[0].id);
+    });
 };
 
 synchronizerServer.client.changeTabUrl = function(tabIndex, newUrl) {
@@ -54,7 +58,6 @@ var connectToServer = function() {
 }
 
 $.connection.hub.disconnected(function() {
-    console.log("Disconnected");
     setTimeout(connectToServer, 10000);
 
     browser.tabs.onActivated.removeListener(onTabActivated);
@@ -79,9 +82,14 @@ var onTabCreated = function(createdTab) {
     }
 }
 
+// TODO Seems to not work under Firefox for Android
 var onTabRemoved = function(tabId) {
     console.log("OnRemoved:");
     console.log("TabId: " + tabId);
+
+    browser.tabs.get(tabId).then(function(tab) {
+        synchronizerServer.server.closeTab(tab.index);
+    });
 }
 
 var onTabUpdated = function(tabId, changeInfo, tabInfo) {
@@ -93,6 +101,12 @@ var onTabUpdated = function(tabId, changeInfo, tabInfo) {
     console.log("New tab Info: ");
     console.log(tabInfo);
     console.log("}");
+
+    if (changeInfo.url) {
+        browser.tabs.get(tabId).then(function(tab) {
+            synchronizerServer.server.changeTabUrl(tab.index, changeInfo.url);
+        });
+    }
 }
 
 var onTabMoved = function(tabId, moveInfo) {

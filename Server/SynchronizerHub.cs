@@ -25,7 +25,13 @@ public class SynchronizerHub : Hub
 	{
 		mLogger.LogInformation("Adding a new tab.");
 
-		mTabDataRepository.AddTab(new TabData { Index = tabIndex, Url = url });
+		if(url.Equals("about:newtab", StringComparison.OrdinalIgnoreCase))
+		{
+			// TODO this should be done in firefox addon as it is specific to browser.
+			url = "about:blank"; // Firefox for android ignores tabs with "about:newtab".
+		}
+
+		mTabDataRepository.Add(new TabData { Index = tabIndex, Url = url });
 
 		await Clients.Others.addTab(tabIndex, url, createInBackground);
 
@@ -43,21 +49,36 @@ public class SynchronizerHub : Hub
 		mLogger.LogInformation("Finished moving a tab.");
 	}
 
-	public void CloseTab(int tabIndex)
+	public async Task CloseTab(int tabIndex)
 	{
 		mLogger.LogInformation($"Closing a tab at index {tabIndex}.");
 
-		Clients.Others.closeTab(tabIndex);		
+		var tab = await mTabDataRepository.GetByIndex(tabIndex);
 
-		mLogger.LogInformation("Finished moving a tab.");
+		await Clients.Others.closeTab(tab.Index);		
+
+		mTabDataRepository.Remove(tab);
+		await mUoW.SaveChangesAsync();	
+
+		mLogger.LogInformation("Finished closing a tab.");
 	}
 
-	public void ChangeTabUrl(int tabIndex, string newUrl)
+	public async Task ChangeTabUrl(int tabIndex, string newUrl)
 	{
 		mLogger.LogInformation($"Changing tab {tabIndex} url to {newUrl}.");
 
-		Clients.Others.changeTabUrl(tabIndex, newUrl);				
+		var tab = await mTabDataRepository.GetByIndex(tabIndex);
+		if(tab.Url.Equals(newUrl, StringComparison.OrdinalIgnoreCase))
+		{	
+			mLogger.LogDebug($"The url did not change.");
+			return;
+		}
 
+		tab.Url = newUrl;
+
+		await Clients.Others.changeTabUrl(tab.Index, tab.Url);
+		await mUoW.SaveChangesAsync();			
+		
 		mLogger.LogInformation("Finished changing a url of tab.");
 	}
 
@@ -82,7 +103,7 @@ public class SynchronizerHub : Hub
 				Index = existingTabs.Count + i,
 				Url = newTabs[i].Url
 			};
-			mTabDataRepository.AddTab(tab);
+			mTabDataRepository.Add(tab);
 		}
 
 		var saveChangesTask = mUoW.SaveChangesAsync();

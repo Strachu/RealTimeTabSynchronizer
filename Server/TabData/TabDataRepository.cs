@@ -13,14 +13,24 @@ public class TabDataRepository : ITabDataRepository
 		mContext = context;
 	}
 
-	public void AddTab(TabData tab)
+	public void Add(TabData tab)
 	{
 		mContext.Add(tab);
+	}
+
+	public void Remove(TabData tab)
+	{
+		mContext.Remove(tab);
 	}
 
 	public async Task<IEnumerable<TabData>> GetAllTabs()
 	{
 		return await mContext.Tabs.OrderBy(x => x.Index).ToListAsync();
+	}
+
+	public Task<TabData> GetByIndex(int index)
+	{
+		return mContext.Tabs.FindAsync(index);
 	}
 
 	public Task<int> GetTabCount()
