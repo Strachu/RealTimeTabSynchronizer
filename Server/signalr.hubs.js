@@ -95,6 +95,10 @@
 
             moveTab: function (oldTabIndex, newTabIndex) {
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["MoveTab"], $.makeArray(arguments)));
+             },
+
+            synchronizeTabs: function (tabs) {
+                return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["SynchronizeTabs"], $.makeArray(arguments)));
              }
         };
 

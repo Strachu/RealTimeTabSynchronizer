@@ -29,9 +29,13 @@ namespace RealTimeTabSynchronizer.Server
 
         public void ConfigureServices(IServiceCollection services)
         {
+            // TODO SignalR does not create scope.
+            services.AddDbContext<TabSynchronizerDbContext>();
             services.AddLogging();
             services.AddCors();
             services.AddSignalR();
+
+            services.AddScoped<ITabDataRepository, TabDataRepository>();
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
@@ -41,14 +45,18 @@ namespace RealTimeTabSynchronizer.Server
 
             app.Map("/signalr", map =>
             {
-                map.UseCors(x => x.SetIsOriginAllowed(y =>
+                map.UseCors(x =>
                 {
-                    // TODO
-                    return true;
-                    //return Regex.IsMatch(y, "moz-extension://*") ||
-                    //    Regex.IsMatch(y, "^192.168.0.*$");
-                })
-                .AllowCredentials());
+                    // x.SetIsOriginAllowed(y =>
+                    // {
+                    //     // TODO
+                    //     return true;
+                    //     //return Regex.IsMatch(y, "moz-extension://*") ||
+                    //     //    Regex.IsMatch(y, "^192.168.0.*$");
+                    // })
+                    x.AllowAnyOrigin()
+                        .AllowCredentials();
+                });
                 
                 map.RunSignalR();
             });

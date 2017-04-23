@@ -21,6 +21,11 @@ synchronizerServer.client.closeTab = function(tabIndex) {
 
 synchronizerServer.client.changeTabUrl = function(tabIndex, newUrl) {
     console.log("changeTabUrl(" + tabIndex + ", " + newUrl + ")");
+
+    // This seems to fail on android tablet when changing many tabs at once
+    browser.tabs.query({ index: tabIndex }).then(function(tabs) {
+        browser.tabs.update(tabs[0].id, { url: newUrl });
+    });
 };
 
 // TODO Reconnect on connection lost
@@ -29,6 +34,7 @@ $.connection.hub.url = "http://192.168.0.2:31711/signalr" // TODO - Move to conf
 $.connection.hub.start()
     .done(function() {
         console.log("Connected to server.");
+        syncWithServerIfNotDoneSoYet();
         addListeners();
     })
     .fail(function() { console.log('Failed to connect to the server.'); });
@@ -72,5 +78,26 @@ var addListeners = function() {
         console.log("Move Info: ");
         console.log(moveInfo);
         console.log("}");
+    });
+}
+
+var syncWithServerIfNotDoneSoYet = function() {
+
+    var alreadySynced = browser.storage.local.get("syncAlreadyDone") == true;
+    if (alreadySynced) {
+        console.log("Sync has been already done. Exiting...");
+        return;
+    }
+
+    console.log("Starting first time synchronization with the server...");
+
+    browser.tabs.query({}).then(function(tabs) {
+
+        synchronizerServer.server.synchronizeTabs(tabs).then(function() {
+
+            browser.storage.local.set({ "syncAlreadyDone": true });
+
+            console.log("Finished first time synchronization with the server.");
+        });
     });
 }
