@@ -36,7 +36,7 @@ namespace RealTimeTabSynchronizer.Server
         {
                 using (var uow = new TabSynchronizerDbContext())
                 {
-                    //uow.Database.EnsureDeleted();
+                    uow.Database.EnsureDeleted();
                     uow.Database.EnsureCreated();
                     uow.SaveChanges();
                 }

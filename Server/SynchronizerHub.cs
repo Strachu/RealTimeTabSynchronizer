@@ -21,15 +21,13 @@ public class SynchronizerHub : Hub
 		mTabDataRepository = tabDataRepository;
 	}
 
-	public async Task AddTab()
+	public async Task AddTab(int tabIndex, string url, bool createInBackground)
 	{
 		mLogger.LogInformation("Adding a new tab.");
 
-		var tabIndex = await mTabDataRepository.GetTabCount();
+		mTabDataRepository.AddTab(new TabData { Index = tabIndex, Url = url });
 
-		mTabDataRepository.AddTab(new TabData { Index = tabIndex, Url = "about:blank" });
-
-		await Clients.Others.appendEmptyTab();
+		await Clients.Others.addTab(tabIndex, url, createInBackground);
 
 		await mUoW.SaveChangesAsync();
 
@@ -63,14 +61,18 @@ public class SynchronizerHub : Hub
 		mLogger.LogInformation("Finished changing a url of tab.");
 	}
 
+	// TODO Firefox for Android returns about:blank when page has not been loaded...
 	public async Task SynchronizeTabs(IReadOnlyCollection<TabData> tabs)
 	{
-		mLogger.LogInformation($"Synchronizing tabs...");
+		mLogger.LogInformation($"Synchronizing {tabs.Count} tabs...");
 
 		// TODO Remove duplicates??
-		var existingTabs = (await mTabDataRepository.GetAllTabs()).ToList();
+		var existingTabs = (await mTabDataRepository.GetAllTabs()).Take(500).ToList();
 		var existingTabsByUrl = existingTabs.GroupBy(x => x.Url, StringComparer.OrdinalIgnoreCase).ToDictionary(x => x.Key, x => x.First(), StringComparer.OrdinalIgnoreCase);
 		var newTabs = tabs.Where(x => !existingTabsByUrl.ContainsKey(x.Url)).ToList();
+
+		mLogger.LogDebug($"Existing tabs: {existingTabs.Count}");
+		mLogger.LogDebug($"New tabs: {newTabs.Count}");
 
 		for(int i = 0; i < newTabs.Count ;++i)
 		{
@@ -86,29 +88,32 @@ public class SynchronizerHub : Hub
 		var saveChangesTask = mUoW.SaveChangesAsync();
 
 		// TODO Optimize
-		var allTabs = existingTabs.Concat(newTabs).ToList();
-		var tabsToCreate = newTabs.Count + existingTabs.Count - tabs.Count;
-		for(int i = 0; i < tabsToCreate ;++i)
-		{
-			await Clients.Caller.appendEmptyTab();
-		}
-
 		var tabsSortedByIndex = tabs.OrderBy(x => x.Index).ToArray();
-		for(int i = 0 ; i < allTabs.Count ;++i)
+		var tabsToUpdate = Math.Min(existingTabs.Count, tabs.Count);
+		for(int i = 0 ; i < tabsToUpdate ;++i)
 		{
-			var newTabValue = allTabs[i];
+			var oldTabValue = tabsSortedByIndex[i];
+			var newTabValue = existingTabs[i];
 
-			bool update = true;
-			if(i < tabsSortedByIndex.Length)
-			{
-				var oldTabValue = tabsSortedByIndex[i];
-
-				update = !oldTabValue.Url.Equals(newTabValue.Url, StringComparison.OrdinalIgnoreCase);
-			}
-
-			if(update)
+			if(!oldTabValue.Url.Equals(newTabValue.Url, StringComparison.OrdinalIgnoreCase))
 			{
 				await Clients.Caller.changeTabUrl(i, newTabValue.Url);
+			}
+		}
+
+		var allTabs = existingTabs.Concat(newTabs).ToList();
+		if(allTabs.Count > tabs.Count)
+		{
+			for(int i = tabs.Count; i < allTabs.Count ;++i)
+			{
+				await Clients.Caller.addTab(i, allTabs[i].Url, createInBackground: true);
+			}
+		}
+		else
+		{
+			for(int i = allTabs.Count; i < tabs.Count ;++i)
+			{
+				await Clients.Caller.closeTab(i);	
 			}
 		}
 		
