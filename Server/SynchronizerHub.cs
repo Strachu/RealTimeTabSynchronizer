@@ -82,7 +82,6 @@ public class SynchronizerHub : Hub
 		mLogger.LogInformation("Finished changing a url of tab.");
 	}
 
-	// TODO Firefox for Android returns about:blank when page has not been loaded...
 	public async Task SynchronizeTabs(IReadOnlyCollection<TabData> tabs)
 	{
 		mLogger.LogInformation($"Synchronizing {tabs.Count} tabs...");
