@@ -53,24 +53,23 @@ var connectToServer = function() {
     $.connection.hub.start()
         .done(function() {
             console.log("Connected to server.");
-            syncWithServerIfNotDoneSoYet();
 
-            browser.tabs.onActivated.addListener(onTabActivated);
-            browser.tabs.onCreated.addListener(onTabCreated);
-            browser.tabs.onRemoved.addListener(onTabRemoved);
-            browser.tabs.onUpdated.addListener(onTabUpdated);
-            browser.tabs.onMoved.addListener(onTabMoved);
+            syncWithServerIfNotDoneSoYet().then(function() {
 
-            browser.tabs.onAttached.addListener(saveTabsState);
-            browser.tabs.onCreated.addListener(saveTabsState);
-            browser.tabs.onDetached.addListener(saveTabsState);
-            browser.tabs.onHighlightChanged.addListener(saveTabsState);
-            browser.tabs.onHighlighted.addListener(saveTabsState);
-            browser.tabs.onMoved.addListener(saveTabsState);
-            browser.tabs.onRemoved.addListener(saveTabsState);
-            browser.tabs.onReplaced.addListener(saveTabsState);
-            browser.tabs.onSelectionChanged.addListener(saveTabsState);
-            browser.tabs.onUpdated.addListener(saveTabsState);
+                browser.tabs.onActivated.addListener(onTabActivated);
+                browser.tabs.onCreated.addListener(onTabCreated);
+                browser.tabs.onRemoved.addListener(onTabRemoved);
+                browser.tabs.onUpdated.addListener(onTabUpdated);
+                browser.tabs.onMoved.addListener(onTabMoved);
+
+                browser.tabs.onAttached.addListener(saveTabsState);
+                browser.tabs.onCreated.addListener(saveTabsState);
+                browser.tabs.onDetached.addListener(saveTabsState);
+                browser.tabs.onMoved.addListener(saveTabsState);
+                browser.tabs.onRemoved.addListener(saveTabsState);
+                browser.tabs.onReplaced.addListener(saveTabsState);
+                browser.tabs.onUpdated.addListener(saveTabsState);
+            });
         })
         .fail(function() { console.log('Failed to connect to the server.'); });
 }
@@ -137,22 +136,31 @@ var onTabMoved = function(tabId, moveInfo) {
 
 var syncWithServerIfNotDoneSoYet = function() {
 
-    var alreadySynced = browser.storage.local.get("syncAlreadyDone") == true;
-    if (alreadySynced) {
-        console.log("Sync has been already done. Exiting...");
-        return;
-    }
+    return new Promise(function(resolve) {
 
-    console.log("Starting first time synchronization with the server...");
+        browser.storage.local.get("syncAlreadyDone").then(function(syncAlreadyDone) {
 
-    browser.tabs.query({}).then(function(tabs) {
+            if (syncAlreadyDone) {
+                console.log("Sync has been already done. Exiting...");
+                resolve();
+                return;
+            }
 
-        synchronizerServer.server.synchronizeTabs(tabs).then(function() {
+            console.log("Starting first time synchronization with the server...");
 
-            browser.storage.local.set({ "syncAlreadyDone": true });
+            browser.tabs.query({}).then(function(tabs) {
 
-            console.log("Finished first time synchronization with the server.");
+                synchronizerServer.server.synchronizeTabs(tabs).then(function() {
+
+                    browser.storage.local.set({ "syncAlreadyDone": true });
+
+                    console.log("Finished first time synchronization with the server.");
+
+                    resolve();
+                });
+            });
         });
+
     });
 }
 
