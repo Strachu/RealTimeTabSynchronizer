@@ -40,6 +40,13 @@ synchronizerServer.client.changeTabUrl = function(tabIndex, newUrl) {
     });
 };
 
+// It's not possible to get index of deleted tab in onRemoved() on Android.
+// On desktop it seems to work just fine.
+var tabsStateBeforeRemoval = {};
+var saveTabsState = function() {
+    browser.tabs.query({}).then(function(tabs) { tabsStateBeforeRemoval = tabs });
+}
+
 var connectToServer = function() {
     $.connection.hub.logging = true;
     $.connection.hub.url = "http://192.168.0.2:31711/signalr" // TODO - Move to config page
@@ -53,6 +60,17 @@ var connectToServer = function() {
             browser.tabs.onRemoved.addListener(onTabRemoved);
             browser.tabs.onUpdated.addListener(onTabUpdated);
             browser.tabs.onMoved.addListener(onTabMoved);
+
+            browser.tabs.onAttached.addListener(saveTabsState);
+            browser.tabs.onCreated.addListener(saveTabsState);
+            browser.tabs.onDetached.addListener(saveTabsState);
+            browser.tabs.onHighlightChanged.addListener(saveTabsState);
+            browser.tabs.onHighlighted.addListener(saveTabsState);
+            browser.tabs.onMoved.addListener(saveTabsState);
+            browser.tabs.onRemoved.addListener(saveTabsState);
+            browser.tabs.onReplaced.addListener(saveTabsState);
+            browser.tabs.onSelectionChanged.addListener(saveTabsState);
+            browser.tabs.onUpdated.addListener(saveTabsState);
         })
         .fail(function() { console.log('Failed to connect to the server.'); });
 }
@@ -82,14 +100,13 @@ var onTabCreated = function(createdTab) {
     }
 }
 
-// TODO Seems to not work under Firefox for Android
 var onTabRemoved = function(tabId) {
     console.log("OnRemoved:");
     console.log("TabId: " + tabId);
 
-    browser.tabs.get(tabId).then(function(tab) {
-        synchronizerServer.server.closeTab(tab.index);
-    });
+    var tab = tabsStateBeforeRemoval.find(function(x) { return x.id == tabId });
+
+    synchronizerServer.server.closeTab(tab.index);
 }
 
 var onTabUpdated = function(tabId, changeInfo, tabInfo) {
