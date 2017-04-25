@@ -6,12 +6,16 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR.Hubs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Server.EntityFramework;
+using Server.SignalR;
 
 namespace RealTimeTabSynchronizer.Server
 {
@@ -31,12 +35,12 @@ namespace RealTimeTabSynchronizer.Server
 
         public void ConfigureServices(IServiceCollection services)
         {
-            // TODO SignalR does not create scope.
             services.AddDbContext<TabSynchronizerDbContext>(x => x.UseNpgsql(Configuration.GetConnectionString("RealTimeTabSynchronizer")));
             services.AddLogging();
             services.AddCors();
             services.AddSignalR();
 
+            services.AddSingleton<IHubActivator, ScopeHubActivator>();
             services.AddSingleton<DbContextFactory>();
             services.AddScoped<ITabDataRepository, TabDataRepository>();
         }
@@ -61,7 +65,7 @@ namespace RealTimeTabSynchronizer.Server
                         .AllowCredentials();
                 });
                 
-                map.RunSignalR();
+                map.RunSignalR<ScopeHandlingHubDispatcher>();
             });
         }
     }
