@@ -1,14 +1,14 @@
+using System;
 using Microsoft.EntityFrameworkCore;
 
 public class TabSynchronizerDbContext : DbContext
 {
-	public DbSet<TabData> Tabs { get; set; }
-
-	protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+	public TabSynchronizerDbContext(DbContextOptions<TabSynchronizerDbContext> options)
+		: base(options)
 	{
-		// TODO To config file
-		optionsBuilder.UseNpgsql(@"Host=192.168.0.200;Database=realtimetabsynchronizer;Username=tabsynchronizer;Password=Test123;");
 	}
+
+	public DbSet<TabData> Tabs { get; set; }
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{

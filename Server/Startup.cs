@@ -7,9 +7,11 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Server.EntityFramework;
 
 namespace RealTimeTabSynchronizer.Server
 {
@@ -30,11 +32,12 @@ namespace RealTimeTabSynchronizer.Server
         public void ConfigureServices(IServiceCollection services)
         {
             // TODO SignalR does not create scope.
-            services.AddDbContext<TabSynchronizerDbContext>();
+            services.AddDbContext<TabSynchronizerDbContext>(x => x.UseNpgsql(Configuration.GetConnectionString("RealTimeTabSynchronizer")));
             services.AddLogging();
             services.AddCors();
             services.AddSignalR();
 
+            services.AddSingleton<DbContextFactory>();
             services.AddScoped<ITabDataRepository, TabDataRepository>();
         }
 

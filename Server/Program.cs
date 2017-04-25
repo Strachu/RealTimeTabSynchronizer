@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Server.EntityFramework;
 
 namespace RealTimeTabSynchronizer.Server
 {
@@ -14,8 +15,6 @@ namespace RealTimeTabSynchronizer.Server
     {
         public static void Main(string[] args)
         {
-            RecreateDatabase();
-
             var hostingConfiguration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
@@ -28,13 +27,15 @@ namespace RealTimeTabSynchronizer.Server
                 .UseStartup<Startup>()
                 .Build();
 
+            RecreateDatabase(host.Services.GetService(typeof(DbContextFactory)) as DbContextFactory);
+
             host.Run();
         }
 
         // TODO Change to migrations
-        private static void RecreateDatabase()
+        private static void RecreateDatabase(DbContextFactory contextFactory)
         {
-                using (var uow = new TabSynchronizerDbContext())
+                using (var uow = contextFactory.Create())
                 {
                     uow.Database.EnsureDeleted();
                     uow.Database.EnsureCreated();
