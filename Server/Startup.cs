@@ -35,14 +35,18 @@ namespace RealTimeTabSynchronizer.Server
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<TabSynchronizerDbContext>(x => x.UseNpgsql(Configuration.GetConnectionString("RealTimeTabSynchronizer")));
             services.AddLogging();
             services.AddCors();
             services.AddSignalR();
 
+            services.Configure<DatabaseOptions>(Configuration.GetSection("Database"));
+
             services.AddSingleton<IHubActivator, ScopeHubActivator>();
             services.AddSingleton<DbContextFactory>();
             services.AddScoped<ITabDataRepository, TabDataRepository>();
+
+            services.AddSingleton<Configurator>();
+            services.AddDbContext<TabSynchronizerDbContext>((provider, opts) => provider.GetRequiredService<Configurator>().Configure(opts));
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
