@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Server.TabData;
 
 public interface ITabDataRepository
 {
@@ -8,4 +9,6 @@ public interface ITabDataRepository
 	Task<TabData> GetByIndex(int index);
 	Task<int> GetTabCount();
 	void Remove(TabData tab);
+
+	Task IncrementTabIndices(TabRange range, int incrementBy);
 }

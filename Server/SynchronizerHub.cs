@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
+using Server.TabData;
 
 public class SynchronizerHub : Hub
 {
@@ -31,19 +32,50 @@ public class SynchronizerHub : Hub
 			url = "about:blank"; // Firefox for android ignores tabs with "about:newtab".
 		}
 
-		mTabDataRepository.Add(new TabData { Index = tabIndex, Url = url });
+		using(var transaction = await mUoW.Database.BeginTransactionAsync())
+		{
+			await mTabDataRepository.IncrementTabIndices(
+				new TabRange(fromIndexInclusive: tabIndex),
+				incrementBy: 1);	
+
+			mTabDataRepository.Add(new TabData { Index = tabIndex, Url = url });
+			await mUoW.SaveChangesAsync();
+			
+			transaction.Commit();
+		}
 
 		await Clients.Others.addTab(tabIndex, url, createInBackground);
-
-		await mUoW.SaveChangesAsync();
 
 		mLogger.LogInformation("Finished adding new tab.");
 	}
 
-	public void MoveTab(int oldTabIndex, int newTabIndex)
+	public async Task MoveTab(int oldTabIndex, int newTabIndex)
 	{
 		mLogger.LogInformation($"Moving a tab from {oldTabIndex} to {newTabIndex}.");
 
+		var tab = await mTabDataRepository.GetByIndex(oldTabIndex);
+
+		using(var transaction = await mUoW.Database.BeginTransactionAsync())
+		{
+			if(oldTabIndex < newTabIndex)
+			{
+				await mTabDataRepository.IncrementTabIndices(
+					new TabRange(oldTabIndex + 1, newTabIndex),
+					incrementBy: -1);
+			}
+			else
+			{
+				await mTabDataRepository.IncrementTabIndices(
+					new TabRange(newTabIndex, newTabIndex - 1),
+					incrementBy: 1);
+			}
+		
+			tab.Index = newTabIndex;
+			await mUoW.SaveChangesAsync();
+			
+			transaction.Commit();
+		}
+		
 		Clients.Others.moveTab(oldTabIndex, newTabIndex);
 
 		mLogger.LogInformation("Finished moving a tab.");
@@ -53,12 +85,21 @@ public class SynchronizerHub : Hub
 	{
 		mLogger.LogInformation($"Closing a tab at index {tabIndex}.");
 
-		var tab = await mTabDataRepository.GetByIndex(tabIndex);
+		var tab = await mTabDataRepository.GetByIndex(tabIndex);	
 
-		await Clients.Others.closeTab(tab.Index);		
+		using(var transaction = await mUoW.Database.BeginTransactionAsync())
+		{
+			await mTabDataRepository.IncrementTabIndices(
+				new TabRange(fromIndexInclusive: tabIndex + 1),
+				incrementBy: -1);
+		
+			mTabDataRepository.Remove(tab);
+			await mUoW.SaveChangesAsync();
+			
+			transaction.Commit();
+		}
 
-		mTabDataRepository.Remove(tab);
-		await mUoW.SaveChangesAsync();	
+		await Clients.Others.closeTab(tab.Index);	
 
 		mLogger.LogInformation("Finished closing a tab.");
 	}
