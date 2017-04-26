@@ -1,0 +1,21 @@
+{
+	"manifest_version": 2,
+	"name": "RealTime Tab Synchronizer",
+	"short_name": "RT Tab Sync",
+	"author": "Patryk Strach",
+	"version": "1.0",
+
+	"description": "Synchronizes in real time open tabs between browsers on different machines. A self hosting solution not using any public server.",
+
+	"applications": {
+	  "gecko": {
+		 "id": "Strach.Patryk@RealTimeTabSynchronizer"
+	  }
+	},
+
+	"permissions": ["tabs", "storage"],
+
+	"background": {
+		"scripts": ["jquery-3.2.1.min.js", "jquery.signalr-2.2.1.min.js", "signalr.hubs.js", "Synchronizer.js", "Overrides.js"]
+	}
+}

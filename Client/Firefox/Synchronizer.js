@@ -134,6 +134,10 @@ var onTabMoved = function(tabId, moveInfo) {
     console.log("}");
 }
 
+var getAllTabsWithUrls = function() {
+    return browser.tabs.query({});
+}
+
 var syncWithServerIfNotDoneSoYet = function() {
 
     return new Promise(function(resolve) {
@@ -148,29 +152,15 @@ var syncWithServerIfNotDoneSoYet = function() {
 
             console.log("Starting first time synchronization with the server...");
 
-            // TODO This is needed only on android because tab.url is "about:blank" on all
-            // tabs not yet activated. But activating every tab can be bad for performance - needs profiling.
-            // But this some tabs are not included. Need to wait some time??
-            browser.tabs.query({}).then(function(tabs) {
+            getAllTabsWithUrls().then(function(tabs) {
 
-                var promises = [];
-                for (var i = 0; i < tabs.length; i++) {
-                    promises.push(browser.tabs.update(tabs[i].id, { active: true }));
-                }
+                synchronizerServer.server.synchronizeTabs(tabs).then(function() {
 
-                Promise.all(promises).then(function() {
+                    browser.storage.local.set({ "syncAlreadyDone": true });
 
-                    browser.tabs.query({}).then(function(loadedTabs) {
+                    console.log("Finished first time synchronization with the server.");
 
-                        synchronizerServer.server.synchronizeTabs(loadedTabs).then(function() {
-
-                            browser.storage.local.set({ "syncAlreadyDone": true });
-
-                            console.log("Finished first time synchronization with the server.");
-
-                            resolve();
-                        });
-                    });
+                    resolve();
                 });
             });
         });
