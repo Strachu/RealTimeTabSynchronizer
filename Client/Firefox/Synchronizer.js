@@ -56,30 +56,37 @@ var saveTabsState = function() {
 }
 
 var connectToServer = function() {
-    $.connection.hub.logging = true;
-    $.connection.hub.url = "http://192.168.0.2:31711/signalr" // TODO - Move to config page
-    $.connection.hub.start()
-        .done(function() {
-            console.log("Connected to server.");
+    browser.storage.local.get("server_url").then(function(config) {
+        if (config.hasOwnProperty("server_url")) {
+            $.connection.hub.url = config.server_url + "/signalR";
+            $.connection.hub.logging = true;
+            $.connection.hub.start()
+                .done(function() {
+                    console.log("Connected to server.");
 
-            syncWithServerIfNotDoneSoYet().then(function() {
+                    syncWithServerIfNotDoneSoYet().then(function() {
 
-                browser.tabs.onActivated.addListener(onTabActivated);
-                browser.tabs.onCreated.addListener(onTabCreated);
-                browser.tabs.onRemoved.addListener(onTabRemoved);
-                browser.tabs.onUpdated.addListener(onTabUpdated);
-                browser.tabs.onMoved.addListener(onTabMoved);
+                        browser.tabs.onActivated.addListener(onTabActivated);
+                        browser.tabs.onCreated.addListener(onTabCreated);
+                        browser.tabs.onRemoved.addListener(onTabRemoved);
+                        browser.tabs.onUpdated.addListener(onTabUpdated);
+                        browser.tabs.onMoved.addListener(onTabMoved);
 
-                browser.tabs.onAttached.addListener(saveTabsState);
-                browser.tabs.onCreated.addListener(saveTabsState);
-                browser.tabs.onDetached.addListener(saveTabsState);
-                browser.tabs.onMoved.addListener(saveTabsState);
-                browser.tabs.onRemoved.addListener(saveTabsState);
-                browser.tabs.onReplaced.addListener(saveTabsState);
-                browser.tabs.onUpdated.addListener(saveTabsState);
-            });
-        })
-        .fail(function() { console.log('Failed to connect to the server.'); });
+                        browser.tabs.onAttached.addListener(saveTabsState);
+                        browser.tabs.onCreated.addListener(saveTabsState);
+                        browser.tabs.onDetached.addListener(saveTabsState);
+                        browser.tabs.onMoved.addListener(saveTabsState);
+                        browser.tabs.onRemoved.addListener(saveTabsState);
+                        browser.tabs.onReplaced.addListener(saveTabsState);
+                        browser.tabs.onUpdated.addListener(saveTabsState);
+                    });
+                })
+                .fail(function() { console.log('Failed to connect to the server.'); });
+
+        } else {
+            browser.runtime.openOptionsPage();
+        }
+    });
 }
 
 $.connection.hub.disconnected(function() {
@@ -178,5 +185,13 @@ var syncWithServerIfNotDoneSoYet = function() {
         });
     });
 }
+
+browser.storage.onChanged.addListener(function(changes) {
+
+    if (changes.server_url) {
+        $.connection.hub.stop();
+        connectToServer();
+    }
+});
 
 connectToServer();

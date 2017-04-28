@@ -17,5 +17,9 @@
 
 	"background": {
 		"scripts": ["jquery-3.2.1.min.js", "jquery.signalr-2.2.1.min.js", "signalr.hubs.js", "Synchronizer.js", "Overrides.js"]
+	},
+	
+	"options_ui": {
+		"page": "Settings.html"
 	}
 }

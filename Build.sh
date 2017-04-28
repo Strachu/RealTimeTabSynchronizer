@@ -11,6 +11,8 @@ zip -r9 -j Bin/Firefox/Android/RealTimeTabSynchronizer.xpi \
 	"Client/Firefox/Android/manifest.json" \
 	"Server/signalr.hubs.js" \
 	"Client/Firefox/Synchronizer.js" \
+	"Client/Firefox/Settings.html" \
+	"Client/Firefox/Settings.js" \
 	"Client/Firefox/Android/Overrides.js" \
 
 echo "Building Firefox Desktop extension..."
@@ -22,6 +24,8 @@ zip -r9 -j Bin/Firefox/Desktop/RealTimeTabSynchronizer.xpi \
 	"Client/Firefox/Desktop/manifest.json" \
 	"Server/signalr.hubs.js" \
 	"Client/Firefox/Synchronizer.js" \
+	"Client/Firefox/Settings.html" \
+	"Client/Firefox/Settings.js" \
 	
 echo "Building the server..."
 
