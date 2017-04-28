@@ -16,19 +16,19 @@ namespace RealTimeTabSynchronizer.Server
 
 		private readonly ILogger mLogger;
 		private readonly TabSynchronizerDbContext mUoW;
+		private readonly ITabService mTabService;
 		private readonly ITabDataRepository mTabDataRepository;
-		private readonly IActiveTabDao mActiveTabDao;
 
 		public SynchronizerHub(
 			ILogger<SynchronizerHub> logger,
 			TabSynchronizerDbContext dbContext,
-			ITabDataRepository tabDataRepository,
-			IActiveTabDao activeTabDao)
+			ITabService tabService,
+			ITabDataRepository tabDataRepository)
 		{
 			mLogger = logger;
 			mUoW = dbContext;
+			mTabService = tabService;
 			mTabDataRepository = tabDataRepository;
-			mActiveTabDao = activeTabDao;
 		}
 
 		public async Task AddTab(int tabIndex, string url, bool createInBackground)
@@ -38,19 +38,9 @@ namespace RealTimeTabSynchronizer.Server
 			await @lock.WaitAsync();
 			try
 			{
-				if(url.Equals("about:newtab", StringComparison.OrdinalIgnoreCase))
-				{
-					// TODO this should be done in firefox addon as it is specific to browser.
-					url = "about:blank"; // Firefox for android ignores tabs with "about:newtab".
-				}
-
 				using(var transaction = await mUoW.Database.BeginTransactionAsync())
 				{
-					await mTabDataRepository.IncrementTabIndices(
-						new TabRange(fromIndexInclusive: tabIndex),
-						incrementBy: 1);	
-
-					mTabDataRepository.Add(new TabData { Index = tabIndex, Url = url });
+					await mTabService.AddTab(tabIndex, url, createInBackground);
 					await mUoW.SaveChangesAsync();
 					
 					transaction.Commit();
@@ -73,24 +63,9 @@ namespace RealTimeTabSynchronizer.Server
 			await @lock.WaitAsync();
 			try
 			{
-				var tab = await mTabDataRepository.GetByIndex(oldTabIndex);
-
 				using(var transaction = await mUoW.Database.BeginTransactionAsync())
 				{
-					if(oldTabIndex < newTabIndex)
-					{
-						await mTabDataRepository.IncrementTabIndices(
-							new TabRange(oldTabIndex + 1, newTabIndex),
-							incrementBy: -1);
-					}
-					else
-					{
-						await mTabDataRepository.IncrementTabIndices(
-							new TabRange(newTabIndex, newTabIndex - 1),
-							incrementBy: 1);
-					}
-				
-					tab.Index = newTabIndex;
+					await mTabService.MoveTab(oldTabIndex, newTabIndex);
 					await mUoW.SaveChangesAsync();
 					
 					transaction.Commit();
@@ -113,21 +88,15 @@ namespace RealTimeTabSynchronizer.Server
 			await @lock.WaitAsync();
 			try
 			{
-				var tab = await mTabDataRepository.GetByIndex(tabIndex);	
-
 				using(var transaction = await mUoW.Database.BeginTransactionAsync())
 				{
-					await mTabDataRepository.IncrementTabIndices(
-						new TabRange(fromIndexInclusive: tabIndex + 1),
-						incrementBy: -1);
-				
-					mTabDataRepository.Remove(tab);
+					await mTabService.CloseTab(tabIndex);
 					await mUoW.SaveChangesAsync();
 					
 					transaction.Commit();
 				}
 
-				await Clients.Others.closeTab(tab.Index);	
+				await Clients.Others.closeTab(tabIndex);	
 			}
 			finally
 			{
@@ -144,17 +113,15 @@ namespace RealTimeTabSynchronizer.Server
 			await @lock.WaitAsync();
 			try
 			{
-				var tab = await mTabDataRepository.GetByIndex(tabIndex);
-				if(tab.Url.Equals(newUrl, StringComparison.OrdinalIgnoreCase))
-				{	
-					mLogger.LogDebug($"The url did not change.");
-					return;
+				using(var transaction = await mUoW.Database.BeginTransactionAsync())
+				{
+					await mTabService.ChangeTabUrl(tabIndex, newUrl);
+					await mUoW.SaveChangesAsync();
+					
+					transaction.Commit();
 				}
 
-				tab.Url = newUrl;
-
-				await mUoW.SaveChangesAsync();			
-				await Clients.Others.changeTabUrl(tab.Index, tab.Url);
+				await Clients.Others.changeTabUrl(tabIndex, newUrl);
 			}
 			finally
 			{
@@ -171,11 +138,15 @@ namespace RealTimeTabSynchronizer.Server
 			await @lock.WaitAsync();
 			try
 			{
-				var tab = await mTabDataRepository.GetByIndex(tabIndex);
-				await mActiveTabDao.SetActiveTab(tab);
-
-				await mUoW.SaveChangesAsync();			
-				await Clients.Others.activateTab(tab.Index);
+				using(var transaction = await mUoW.Database.BeginTransactionAsync())
+				{
+					await mTabService.ActivateTab(tabIndex);
+					await mUoW.SaveChangesAsync();
+					
+					transaction.Commit();
+				}
+				
+				await Clients.Others.activateTab(tabIndex);
 			}
 			finally
 			{
@@ -189,52 +160,57 @@ namespace RealTimeTabSynchronizer.Server
 		{
 			mLogger.LogInformation($"Synchronizing {tabs.Count} tabs...");
 
-			// TODO Remove duplicates??
-			var existingTabs = (await mTabDataRepository.GetAllTabs()).ToList();
-			var existingTabsByUrl = existingTabs.GroupBy(x => x.Url, StringComparer.OrdinalIgnoreCase).ToDictionary(x => x.Key, x => x.First(), StringComparer.OrdinalIgnoreCase);
-			var newTabs = tabs.Where(x => !existingTabsByUrl.ContainsKey(x.Url)).ToList();
-
-			mLogger.LogDebug($"Existing tabs: {existingTabs.Count}");
-			mLogger.LogDebug($"New tabs: {newTabs.Count}");
-
-			for(int i = 0; i < newTabs.Count ;++i)
+			using(var transaction = await mUoW.Database.BeginTransactionAsync())
 			{
-				await AddTab(existingTabs.Count + i, newTabs[i].Url, createInBackground: true);
-			}
+				// TODO Remove duplicates??
+				var existingTabs = (await mTabDataRepository.GetAllTabs()).ToList();
+				var existingTabsByUrl = existingTabs.GroupBy(x => x.Url, StringComparer.OrdinalIgnoreCase).ToDictionary(x => x.Key, x => x.First(), StringComparer.OrdinalIgnoreCase);
+				var newTabs = tabs.Where(x => !existingTabsByUrl.ContainsKey(x.Url)).ToList();
 
-			var saveChangesTask = mUoW.SaveChangesAsync();
+				mLogger.LogDebug($"Existing tabs: {existingTabs.Count}");
+				mLogger.LogDebug($"New tabs: {newTabs.Count}");
 
-			// TODO Optimize
-			var tabsSortedByIndex = tabs.OrderBy(x => x.Index).ToArray();
-			var tabsToUpdate = Math.Min(existingTabs.Count, tabs.Count);
-			for(int i = 0 ; i < tabsToUpdate ;++i)
-			{
-				var oldTabValue = tabsSortedByIndex[i];
-				var newTabValue = existingTabs[i];
-
-				if(!oldTabValue.Url.Equals(newTabValue.Url, StringComparison.OrdinalIgnoreCase))
+				for(int i = 0; i < newTabs.Count ;++i)
 				{
-					await Clients.Caller.changeTabUrl(i, newTabValue.Url);
+					await mTabService.AddTab(existingTabs.Count + i, newTabs[i].Url, createInBackground: true);
+					await Clients.Others.addTab(existingTabs.Count + i, newTabs[i].Url, createInBackground: true);
 				}
-			}
 
-			var allTabs = existingTabs.Concat(newTabs).ToList();
-			if(allTabs.Count > tabs.Count)
-			{
-				for(int i = tabs.Count; i < allTabs.Count ;++i)
+				var saveChangesTask = mUoW.SaveChangesAsync();
+
+				// TODO Optimize
+				var tabsSortedByIndex = tabs.OrderBy(x => x.Index).ToArray();
+				var tabsToUpdate = Math.Min(existingTabs.Count, tabs.Count);
+				for(int i = 0 ; i < tabsToUpdate ;++i)
 				{
-					await Clients.Caller.addTab(i, allTabs[i].Url, createInBackground: true);
+					var oldTabValue = tabsSortedByIndex[i];
+					var newTabValue = existingTabs[i];
+
+					if(!oldTabValue.Url.Equals(newTabValue.Url, StringComparison.OrdinalIgnoreCase))
+					{
+						await Clients.Caller.changeTabUrl(i, newTabValue.Url);
+					}
 				}
-			}
-			else
-			{
-				for(int i = allTabs.Count; i < tabs.Count ;++i)
+
+				var allTabs = existingTabs.Concat(newTabs).ToList();
+				if(allTabs.Count > tabs.Count)
 				{
-					await Clients.Caller.closeTab(i);	
+					for(int i = tabs.Count; i < allTabs.Count ;++i)
+					{
+						await Clients.Caller.addTab(i, allTabs[i].Url, createInBackground: true);
+					}
 				}
+				else
+				{
+					for(int i = allTabs.Count; i < tabs.Count ;++i)
+					{
+						await Clients.Caller.closeTab(i);	
+					}
+				}
+				
+				await saveChangesTask;
+				transaction.Commit();
 			}
-			
-			await saveChangesTask;
 
 			mLogger.LogInformation($"Finished synchronizing tabs...");
 		}

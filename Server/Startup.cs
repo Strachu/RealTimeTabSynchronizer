@@ -46,6 +46,7 @@ namespace RealTimeTabSynchronizer.Server
             services.AddSingleton<DbContextFactory>();
             services.AddScoped<ITabDataRepository, TabDataRepository>();
             services.AddScoped<IActiveTabDao, ActiveTabDao>();
+            services.AddScoped<ITabService, TabService>();
 
             services.AddSingleton<Configurator>();
             services.AddDbContext<TabSynchronizerDbContext>((provider, opts) => provider.GetRequiredService<Configurator>().Configure(opts));
