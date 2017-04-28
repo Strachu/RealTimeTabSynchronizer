@@ -1,6 +1,6 @@
 using System;
 
-namespace Server.TabData
+namespace Server.TabData_
 {
     public class TabRange
     {

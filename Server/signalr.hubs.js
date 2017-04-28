@@ -81,7 +81,11 @@
         proxies['synchronizerHub'] = this.createHubProxy('synchronizerHub'); 
         proxies['synchronizerHub'].client = { };
         proxies['synchronizerHub'].server = {
-            addTab: function () {
+            activateTab: function (tabIndex) {
+                return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["ActivateTab"], $.makeArray(arguments)));
+             },
+
+            addTab: function (tabIndex, url, createInBackground) {
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["AddTab"], $.makeArray(arguments)));
              },
 

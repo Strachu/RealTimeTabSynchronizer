@@ -7,9 +7,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Server.TabData;
+using Server.TabData_;
 
-public class TabDataRepository : ITabDataRepository
+public partial class TabDataRepository : ITabDataRepository
 {
 	private readonly TabSynchronizerDbContext mContext;
 

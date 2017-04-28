@@ -40,6 +40,14 @@ synchronizerServer.client.changeTabUrl = function(tabIndex, newUrl) {
     });
 };
 
+synchronizerServer.client.activateTab = function(tabIndex) {
+    console.log("activateTab(" + tabIndex + ")");
+
+    browser.tabs.query({ index: tabIndex }).then(function(tabs) {
+        browser.tabs.update(tabs[0].id, { active: true })
+    });
+};
+
 // It's not possible to get index of deleted tab in onRemoved() on Android.
 // On desktop it seems to work just fine.
 var tabsStateBeforeRemoval = {};
@@ -87,6 +95,10 @@ $.connection.hub.disconnected(function() {
 var onTabActivated = function(activeInfo) {
     console.log("OnActivated:");
     console.log("TabId: " + activeInfo.tabId);
+
+    browser.tabs.get(activeInfo.tabId).then(function(tab) {
+        synchronizerServer.server.activateTab(tab.index);
+    });
 }
 
 var onTabCreated = function(createdTab) {
