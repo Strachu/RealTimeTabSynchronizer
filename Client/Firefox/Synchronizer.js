@@ -161,9 +161,9 @@ var syncWithServerIfNotDoneSoYet = function() {
 
     return new Promise(function(resolve) {
 
-        browser.storage.local.get("syncAlreadyDone").then(function(syncAlreadyDone) {
+        browser.storage.local.get("syncAlreadyDone").then(function(config) {
 
-            if (syncAlreadyDone) {
+            if (config.syncAlreadyDone) {
                 console.log("Sync has been already done. Exiting...");
                 resolve();
                 return;
