@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
-using Server.EntityFramework;
+using RealTimeTabSynchronizer.Server.EntityFramework;
 
 namespace RealTimeTabSynchronizer.Server
 {

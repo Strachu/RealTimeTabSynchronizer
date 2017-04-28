@@ -2,7 +2,7 @@ using System;
 using Microsoft.AspNetCore.SignalR.Hubs;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Server.SignalR
+namespace RealTimeTabSynchronizer.Server.SignalR
 {
     /// A hub activator which creates the hubs in current scope allowing the usage of dependencies
     /// scoped per signalR request.

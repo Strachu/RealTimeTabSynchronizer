@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.SignalR.Hubs;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace Server.SignalR
+namespace RealTimeTabSynchronizer.Server.SignalR
 {
     public class ScopeHandlingHubDispatcher : HubDispatcher
 	{

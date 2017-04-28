@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace Server.EntityFramework
+namespace RealTimeTabSynchronizer.Server.EntityFramework
 {
     public class DbContextFactory
     {

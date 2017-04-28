@@ -9,33 +9,36 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Server.TabData_;
+using RealTimeTabSynchronizer.Server.EntityFramework;
 
-public class ActiveTabDao : IActiveTabDao
+namespace RealTimeTabSynchronizer.Server.TabData_
 {
-	private readonly TabSynchronizerDbContext mContext;
-
-	public ActiveTabDao(TabSynchronizerDbContext context)
+	public class ActiveTabDao : IActiveTabDao
 	{
-		mContext = context;
-	}
+		private readonly TabSynchronizerDbContext mContext;
 
-	public async Task<TabData> GetActiveTab()
-	{
-		var activeTab = await mContext.ActiveTab.SingleOrDefaultAsync();
-
-		return activeTab?.Tab;			
-	}
-
-	public async Task SetActiveTab(TabData tab)
-	{
-		var activeTab = await mContext.ActiveTab.SingleOrDefaultAsync();
-		if(activeTab == null)
+		public ActiveTabDao(TabSynchronizerDbContext context)
 		{
-			activeTab = new ActiveTab();
-			mContext.ActiveTab.Add(activeTab);
+			mContext = context;
 		}
 
-		activeTab.Tab = tab;
+		public async Task<TabData> GetActiveTab()
+		{
+			var activeTab = await mContext.ActiveTab.SingleOrDefaultAsync();
+
+			return activeTab?.Tab;			
+		}
+
+		public async Task SetActiveTab(TabData tab)
+		{
+			var activeTab = await mContext.ActiveTab.SingleOrDefaultAsync();
+			if(activeTab == null)
+			{
+				activeTab = new ActiveTab();
+				mContext.ActiveTab.Add(activeTab);
+			}
+
+			activeTab.Tab = tab;
+		}
 	}
 }

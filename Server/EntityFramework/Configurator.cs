@@ -4,7 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using MySQL.Data.EntityFrameworkCore.Extensions;
 
-namespace Server.EntityFramework
+namespace RealTimeTabSynchronizer.Server.EntityFramework
 {
     public class Configurator
     {

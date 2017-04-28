@@ -14,8 +14,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Server.EntityFramework;
-using Server.SignalR;
+using RealTimeTabSynchronizer.Server.EntityFramework;
+using RealTimeTabSynchronizer.Server.SignalR;
+using RealTimeTabSynchronizer.Server.TabData_;
 
 namespace RealTimeTabSynchronizer.Server
 {

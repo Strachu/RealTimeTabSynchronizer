@@ -1,4 +1,4 @@
-namespace Server.TabData_
+namespace RealTimeTabSynchronizer.Server.TabData_
 {
 	public class ActiveTab
 	{

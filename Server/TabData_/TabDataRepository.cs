@@ -7,56 +7,59 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Server.TabData_;
+using RealTimeTabSynchronizer.Server.EntityFramework;
 
-public partial class TabDataRepository : ITabDataRepository
+namespace RealTimeTabSynchronizer.Server.TabData_
 {
-	private readonly TabSynchronizerDbContext mContext;
-
-	public TabDataRepository(TabSynchronizerDbContext context)
+	public class TabDataRepository : ITabDataRepository
 	{
-		mContext = context;
-	}
+		private readonly TabSynchronizerDbContext mContext;
 
-	public void Add(TabData tab)
-	{
-		mContext.Add(tab);
-	}
+		public TabDataRepository(TabSynchronizerDbContext context)
+		{
+			mContext = context;
+		}
 
-	public void Remove(TabData tab)
-	{
-		mContext.Remove(tab);
-	}
+		public void Add(TabData tab)
+		{
+			mContext.Add(tab);
+		}
 
-	public async Task<IEnumerable<TabData>> GetAllTabs()
-	{
-		return await mContext.Tabs.OrderBy(x => x.Index).ToListAsync();
-	}
+		public void Remove(TabData tab)
+		{
+			mContext.Remove(tab);
+		}
 
-	public Task<TabData> GetByIndex(int index)
-	{
-		return mContext.Tabs.SingleOrDefaultAsync(x => x.Index == index);
-	}
+		public async Task<IEnumerable<TabData>> GetAllTabs()
+		{
+			return await mContext.Tabs.OrderBy(x => x.Index).ToListAsync();
+		}
 
-	public Task<int> GetTabCount()
-	{
-		return mContext.Tabs.CountAsync();
-	}
+		public Task<TabData> GetByIndex(int index)
+		{
+			return mContext.Tabs.SingleOrDefaultAsync(x => x.Index == index);
+		}
 
-	public Task IncrementTabIndices(TabRange range, int incrementBy)
-	{
-		var sql = @"
-			UPDATE OpenTabs
-			SET ""Index"" = ""Index"" + {0}
-			WHERE ""Index"" >= {1} AND ""Index"" <= {2}";
+		public Task<int> GetTabCount()
+		{
+			return mContext.Tabs.CountAsync();
+		}
 
-		sql = Regex.Replace(sql, @"\s+", " ");
+		public Task IncrementTabIndices(TabRange range, int incrementBy)
+		{
+			var sql = @"
+				UPDATE OpenTabs
+				SET ""Index"" = ""Index"" + {0}
+				WHERE ""Index"" >= {1} AND ""Index"" <= {2}";
 
-		return mContext.Database.ExecuteSqlCommandAsync(
-			sql,
-			CancellationToken.None,
-			incrementBy,
-			range.FromIndexInclusive,
-			range.ToIndexInclusive);
+			sql = Regex.Replace(sql, @"\s+", " ");
+
+			return mContext.Database.ExecuteSqlCommandAsync(
+				sql,
+				CancellationToken.None,
+				incrementBy,
+				range.FromIndexInclusive,
+				range.ToIndexInclusive);
+		}
 	}
 }
