@@ -20,16 +20,16 @@ Although contributions are welcome.
 
 **Note: The software is in very early development stage. It's currently not usable. Installing it is discouraged unless you want to contribute as using the application in this stage can result in data loss.**
 
-# Supported browsers
-- Mozilla Firefox (desktop) 52.0.2 or higher - it's possible that the adding will work with lower version however its the lowest version it was tested on,
-- Firefox For Android 54.0 or higher
-
 # Features
 - Synchronization of open tabs in real-time,
 - Automatic resynchronization during connection recovery after previous connection loss,
 - Conflict resolving in the case of making independent changes on multiple browsers in offline mode, 
 - Easy extending to new browsers due to doing almost all logic server side,
 - Cross platform server software supporting all main desktop OSes and Raspberry Pi,
+
+# Supported browsers
+- Mozilla Firefox (desktop) 52.0.2 or higher - it's possible that the adding will work with lower version however its the lowest version it was tested on,
+- Firefox For Android 54.0 or higher
 
 # Server requirements
 To run the application you need:
