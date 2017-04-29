@@ -28,7 +28,7 @@ Although contributions are welcome.
 - Cross platform server software supporting all main desktop OSes and Raspberry Pi,
 
 # Supported browsers
-- Mozilla Firefox (desktop) 52.0.2 or higher - it's possible that the adding will work with lower version however its the lowest version it was tested on,
+- Mozilla Firefox (desktop) 52.0.2 or higher - it's possible that the addon will work with lower version however its the lowest version it was tested on,
 - Firefox For Android 54.0 or higher
 
 # Server requirements
