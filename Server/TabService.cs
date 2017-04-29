@@ -21,7 +21,7 @@ namespace RealTimeTabSynchronizer.Server
 			mActiveTabDao = activeTabDao;
 		}
 
-		public async Task AddTab(int tabIndex, string url, bool createInBackground)
+		public async Task<string> AddTab(int tabIndex, string url, bool createInBackground)
 		{
 			if(url.Equals("about:newtab", StringComparison.OrdinalIgnoreCase))
 			{
@@ -34,6 +34,7 @@ namespace RealTimeTabSynchronizer.Server
 				incrementBy: 1);	
 
 			mTabDataRepository.Add(new TabData { Index = tabIndex, Url = url });
+			return url;
 		}
 
 		public async Task MoveTab(int oldTabIndex, int newTabIndex)
@@ -67,16 +68,17 @@ namespace RealTimeTabSynchronizer.Server
 			mTabDataRepository.Remove(tab);
 		}
 
-		public async Task ChangeTabUrl(int tabIndex, string newUrl)
+		public async Task<bool> ChangeTabUrl(int tabIndex, string newUrl)
 		{
 			var tab = await mTabDataRepository.GetByIndex(tabIndex);
 			if(tab.Url.Equals(newUrl, StringComparison.OrdinalIgnoreCase))
 			{	
 				mLogger.LogDebug($"The url did not change.");
-				return;
+				return false;
 			}
 
 			tab.Url = newUrl;
+			return true;
 		}
 
 		public async Task ActivateTab(int tabIndex)

@@ -40,7 +40,7 @@ namespace RealTimeTabSynchronizer.Server
 			{
 				using(var transaction = await mUoW.Database.BeginTransactionAsync())
 				{
-					await mTabService.AddTab(tabIndex, url, createInBackground);
+					url = await mTabService.AddTab(tabIndex, url, createInBackground);
 					await mUoW.SaveChangesAsync();
 					
 					transaction.Commit();
@@ -115,7 +115,12 @@ namespace RealTimeTabSynchronizer.Server
 			{
 				using(var transaction = await mUoW.Database.BeginTransactionAsync())
 				{
-					await mTabService.ChangeTabUrl(tabIndex, newUrl);
+					bool changed = await mTabService.ChangeTabUrl(tabIndex, newUrl);
+					if(!changed)
+					{
+						return;
+					}
+
 					await mUoW.SaveChangesAsync();
 					
 					transaction.Commit();
