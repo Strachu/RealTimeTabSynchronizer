@@ -3,9 +3,10 @@
 	"name": "RealTime Tab Synchronizer",
 	"short_name": "RT Tab Sync",
 	"author": "Patryk Strach",
-	"version": "1.0",
+	"homepage_url": "https://github.com/Strachu/RealTimeTabSynchronizer",
+	"version": "0.1",
 
-	"description": "Synchronizes in real time open tabs between browsers on different machines. A self hosting solution not using any public server.",
+	"description": "Synchronizes in real time open tabs between browsers on different machines.\n\nThe main use case for the application is:\nAs a Internet user\nI want to have the same tabs open on my desktop and tablet browser\nSo that I can anytime continue reading at the point I had left without wasting my time for manual opening of tabs.\n\nIt's a self host solution which means that to use the utility you need to host the server yourself. This allows you to keep a maximum privacy as the history of your browsing does not leave your local network at the expense of maintaining your own server which needs to be online for synchronization.",
 
 	"applications": {
 	  "gecko": {
@@ -16,7 +17,7 @@
 	"permissions": ["tabs", "storage"],
 
 	"background": {
-		"scripts": ["jquery-3.2.1.min.js", "jquery.signalr-2.2.1.min.js", "signalr.hubs.js", "Synchronizer.js", "Overrides.js"]
+		"scripts": ["jquery-3.2.1.min.js", "jquery.signalr-2.2.1.min.js", "signalr.hubs.js", "guidgenerator.js", "Synchronizer.js", "Overrides.js"]
 	},
 	
 	"options_ui": {
