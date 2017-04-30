@@ -16,3 +16,9 @@ document.querySelector("form").addEventListener("submit", function(event) {
         server_url: document.querySelector("#server_url").value
     });
 });
+
+browser.storage.onChanged.addListener(function(changes) {
+    if (changes.server_url) {
+        synchronizerServer.changeServerUrl(changes.server_url);
+    }
+});

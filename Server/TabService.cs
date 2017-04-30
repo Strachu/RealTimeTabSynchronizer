@@ -61,11 +61,12 @@ namespace RealTimeTabSynchronizer.Server
 		{
 			var tab = await mTabDataRepository.GetByIndex(tabIndex);
 
+			// EF doesn't play nice with raw sql due to it's UoW.
+			await mTabDataRepository.Remove(tab, forceFlush: true);
+
 			await mTabDataRepository.IncrementTabIndices(
 				new TabRange(fromIndexInclusive: tabIndex + 1),
 				incrementBy: -1);
-		
-			mTabDataRepository.Remove(tab);
 		}
 
 		public async Task<bool> ChangeTabUrl(int tabIndex, string newUrl)

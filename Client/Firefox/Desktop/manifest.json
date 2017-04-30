@@ -17,7 +17,7 @@
 	"permissions": ["tabs", "storage"],
 
 	"background": {
-		"scripts": ["jquery-3.2.1.min.js", "jquery.signalr-2.2.1.min.js", "signalr.hubs.js", "guidgenerator.js", "Synchronizer.js"]
+		"scripts": ["jquery-3.2.1.min.js", "jquery.signalr-2.2.1.min.js", "signalr.hubs.js", "guidgenerator.js", "OfflineChangeTracking.js", "Server.js", "TabManager.js", "Init.js"]
 	},
 	
 	"options_ui": {

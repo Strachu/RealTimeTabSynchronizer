@@ -8,7 +8,7 @@ namespace RealTimeTabSynchronizer.Server.TabData_
 	{
 		public override void Map(EntityTypeBuilder<ActiveTab> builder)
 		{
-			builder.HasKey(x => x.Id);
+			builder.HasKey(x => x.TabId);
 
 			builder.HasOne(x => x.Tab)
 				.WithOne()

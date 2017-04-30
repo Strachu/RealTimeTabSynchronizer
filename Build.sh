@@ -8,9 +8,13 @@ mkdir --parents Bin/Firefox/Android
 zip -r9 -j Bin/Firefox/Android/RealTimeTabSynchronizer.xpi \
 	"Client/ThirdParty/jquery.signalr-2.2.1.min.js" \
 	"Client/ThirdParty/jquery-3.2.1.min.js" \
+	"Client/ThirdParty/guidgenerator.js" \
 	"Client/Firefox/Android/manifest.json" \
 	"Server/signalr.hubs.js" \
-	"Client/Firefox/Synchronizer.js" \
+	"Client/Firefox/Init.js" \
+	"Client/Firefox/OfflineChangeTracking.js" \
+	"Client/Firefox/Server.js" \
+	"Client/Firefox/TabManager.js" \
 	"Client/Firefox/Settings.html" \
 	"Client/Firefox/Settings.js" \
 	"Client/Firefox/Android/Overrides.js" \
@@ -21,9 +25,13 @@ mkdir --parents Bin/Firefox/Desktop
 zip -r9 -j Bin/Firefox/Desktop/RealTimeTabSynchronizer.xpi \
 	"Client/ThirdParty/jquery.signalr-2.2.1.min.js" \
 	"Client/ThirdParty/jquery-3.2.1.min.js" \
+	"Client/ThirdParty/guidgenerator.js" \
 	"Client/Firefox/Desktop/manifest.json" \
 	"Server/signalr.hubs.js" \
-	"Client/Firefox/Synchronizer.js" \
+	"Client/Firefox/Init.js" \
+	"Client/Firefox/OfflineChangeTracking.js" \
+	"Client/Firefox/Server.js" \
+	"Client/Firefox/TabManager.js" \
 	"Client/Firefox/Settings.html" \
 	"Client/Firefox/Settings.js" \
 	

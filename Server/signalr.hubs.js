@@ -81,28 +81,28 @@
         proxies['synchronizerHub'] = this.createHubProxy('synchronizerHub'); 
         proxies['synchronizerHub'].client = { };
         proxies['synchronizerHub'].server = {
-            activateTab: function (tabIndex) {
+            activateTab: function (browserId, tabIndex) {
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["ActivateTab"], $.makeArray(arguments)));
              },
 
-            addTab: function (tabIndex, url, createInBackground) {
+            addTab: function (browserId, tabIndex, url, createInBackground) {
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["AddTab"], $.makeArray(arguments)));
              },
 
-            changeTabUrl: function (tabIndex, newUrl) {
+            changeTabUrl: function (browserId, tabIndex, newUrl) {
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["ChangeTabUrl"], $.makeArray(arguments)));
              },
 
-            closeTab: function (tabIndex) {
+            closeTab: function (browserId, tabIndex) {
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["CloseTab"], $.makeArray(arguments)));
              },
 
-            moveTab: function (oldTabIndex, newTabIndex) {
+            moveTab: function (browserId, oldTabIndex, newTabIndex) {
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["MoveTab"], $.makeArray(arguments)));
              },
 
-            synchronizeTabs: function (tabs) {
-                return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["SynchronizeTabs"], $.makeArray(arguments)));
+            synchronize: function (browserId, changesSinceLastConnection, currentlyOpenTabs) {
+                return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["Synchronize"], $.makeArray(arguments)));
              }
         };
 

@@ -14,6 +14,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using RealTimeTabSynchronizer.Server.Browsers;
 using RealTimeTabSynchronizer.Server.EntityFramework;
 using RealTimeTabSynchronizer.Server.SignalR;
 using RealTimeTabSynchronizer.Server.TabData_;
@@ -22,6 +23,8 @@ namespace RealTimeTabSynchronizer.Server
 {
     public class Startup
     {
+        private readonly IHostingEnvironment mEnvironment;
+
         public Startup(IHostingEnvironment env)
         {
             var builder = new ConfigurationBuilder()
@@ -30,6 +33,8 @@ namespace RealTimeTabSynchronizer.Server
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
                 .AddEnvironmentVariables();
             Configuration = builder.Build();
+
+            mEnvironment = env;
         }
 
         public IConfigurationRoot Configuration { get; }
@@ -38,13 +43,14 @@ namespace RealTimeTabSynchronizer.Server
         {
             services.AddLogging();
             services.AddCors();
-            services.AddSignalR();
+            services.AddSignalR(x => x.Hubs.EnableDetailedErrors = mEnvironment.IsDevelopment());
 
             services.Configure<DatabaseOptions>(Configuration.GetSection("Database"));
 
             services.AddSingleton<IHubActivator, ScopeHubActivator>();
             services.AddSingleton<DbContextFactory>();
             services.AddScoped<ITabDataRepository, TabDataRepository>();
+            services.AddScoped<IBrowserRepository, BrowserRepository>();
             services.AddScoped<IActiveTabDao, ActiveTabDao>();
             services.AddScoped<ITabService, TabService>();
 

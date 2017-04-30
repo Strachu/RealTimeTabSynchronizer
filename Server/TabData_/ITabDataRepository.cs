@@ -9,7 +9,7 @@ namespace RealTimeTabSynchronizer.Server.TabData_
 		Task<IEnumerable<TabData>> GetAllTabs();
 		Task<TabData> GetByIndex(int index);
 		Task<int> GetTabCount();
-		void Remove(TabData tab);
+		Task Remove(TabData tab, bool forceFlush = false);
 
 		Task IncrementTabIndices(TabRange range, int incrementBy);
 	}

@@ -1,4 +1,4 @@
-getAllTabsWithUrls = function() {
+tabManager.getAllTabsWithUrls = function() {
 
     return new Promise(function(resolve) {
 
