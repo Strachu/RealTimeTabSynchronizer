@@ -1,8 +1,23 @@
 var synchronizerServer = $.connection.synchronizerHub;
 var tabsCreatedBySynchronizer = {} // TODO Should this be done server side?
 
+// Temporary variables to prevent invoking server.addTab() for tabs created by addon.
+// capturedEventHandlers and createTabResultPendingCount are strictly needed only on
+// Android due to onCreated event firing first but is nonetheless left also on desktop
+// in case Mozilla will change the order to be consistent.
+var tabsCreatedBySynchronizer = {}
+var capturedEventHandlers = [];
+var createTabResultPendingCount = 0;
+var invokeOrInterceptHandler = function(handler) {
+    if (createTabResultPendingCount == 0) {
+        handler();
+    } else {
+        capturedEventHandlers.push(handler);
+    }
+}
+
 synchronizerServer.client.addTab = function(tabIndex, url, createInBackground) {
-    console.log("appendEmptyTab");
+    console.log("addTab(" + tabIndex + ", " + url + ", " + createInBackground);
 
     var newTabProperties = {
         index: tabIndex,
@@ -10,10 +25,18 @@ synchronizerServer.client.addTab = function(tabIndex, url, createInBackground) {
         active: !createInBackground
     };
 
-    // Seems like there is some race condition - onCreated is working nonetheless
-    // Maybe using index in the dictionary will work.
+    createTabResultPendingCount++;
+
     browser.tabs.create(newTabProperties).then(function(tab) {
+
+        createTabResultPendingCount--;
         tabsCreatedBySynchronizer[tab.id] = true;
+
+        for (var i = 0; i < capturedEventHandlers.length; ++i) {
+            capturedEventHandlers[i]();
+        }
+
+        capturedEventHandlers = [];
     });
 };
 
@@ -100,57 +123,67 @@ $.connection.hub.disconnected(function() {
 });
 
 var onTabActivated = function(activeInfo) {
-    console.log("OnActivated:");
-    console.log("TabId: " + activeInfo.tabId);
+    invokeOrInterceptHandler(function() {
+        console.log("OnActivated:");
+        console.log("TabId: " + activeInfo.tabId);
 
-    browser.tabs.get(activeInfo.tabId).then(function(tab) {
-        synchronizerServer.server.activateTab(tab.index);
+        browser.tabs.get(activeInfo.tabId).then(function(tab) {
+            synchronizerServer.server.activateTab(tab.index);
+        })
     });
 }
 
 var onTabCreated = function(createdTab) {
-    console.log("OnCreated:");
-    console.log(createdTab);
+    invokeOrInterceptHandler(function() {
+        console.log("OnCreated:");
+        console.log(createdTab);
 
-    if (!tabsCreatedBySynchronizer.hasOwnProperty(createdTab.id)) {
-        synchronizerServer.server.addTab(
-            createdTab.index, createdTab.url, !createdTab.active);
-    }
+        if (!tabsCreatedBySynchronizer.hasOwnProperty(createdTab.id)) {
+            synchronizerServer.server.addTab(
+                createdTab.index, createdTab.url, !createdTab.active);
+        }
+    });
 }
 
 var onTabRemoved = function(tabId) {
-    console.log("OnRemoved:");
-    console.log("TabId: " + tabId);
+    invokeOrInterceptHandler(function() {
+        console.log("OnRemoved:");
+        console.log("TabId: " + tabId);
 
-    var tab = tabsStateBeforeRemoval.find(function(x) { return x.id == tabId });
+        var tab = tabsStateBeforeRemoval.find(function(x) { return x.id == tabId });
 
-    synchronizerServer.server.closeTab(tab.index);
+        synchronizerServer.server.closeTab(tab.index);
+    });
 }
 
 var onTabUpdated = function(tabId, changeInfo, tabInfo) {
-    console.log("OnUpdated:");
-    console.log("{");
-    console.log("TabId: " + tabId);
-    console.log("Changed attributes: ");
-    console.log(changeInfo);
-    console.log("New tab Info: ");
-    console.log(tabInfo);
-    console.log("}");
+    invokeOrInterceptHandler(function() {
+        console.log("OnUpdated:");
+        console.log("{");
+        console.log("TabId: " + tabId);
+        console.log("Changed attributes: ");
+        console.log(changeInfo);
+        console.log("New tab Info: ");
+        console.log(tabInfo);
+        console.log("}");
 
-    if (changeInfo.url) {
-        browser.tabs.get(tabId).then(function(tab) {
-            synchronizerServer.server.changeTabUrl(tab.index, changeInfo.url);
-        });
-    }
+        if (changeInfo.url) {
+            browser.tabs.get(tabId).then(function(tab) {
+                synchronizerServer.server.changeTabUrl(tab.index, changeInfo.url);
+            });
+        }
+    });
 }
 
 var onTabMoved = function(tabId, moveInfo) {
-    console.log("onMoved:");
-    console.log("{");
-    console.log("TabId: " + tabId);
-    console.log("Move Info: ");
-    console.log(moveInfo);
-    console.log("}");
+    invokeOrInterceptHandler(function() {
+        console.log("onMoved:");
+        console.log("{");
+        console.log("TabId: " + tabId);
+        console.log("Move Info: ");
+        console.log(moveInfo);
+        console.log("}")
+    });
 }
 
 var getAllTabsWithUrls = function() {
