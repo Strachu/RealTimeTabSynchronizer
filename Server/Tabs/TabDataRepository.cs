@@ -25,14 +25,9 @@ namespace RealTimeTabSynchronizer.Server.TabData_
 			mContext.Add(tab);
 		}
 
-		public async Task Remove(TabData tab, bool forceFlush = true)
+		public void Remove(TabData tab)
 		{
 			mContext.Remove(tab);
-			
-			if(forceFlush)
-			{
-				await mContext.SaveChangesAsync();
-			}
 		}
 
 		public async Task<IEnumerable<TabData>> GetAllTabs()
@@ -53,7 +48,7 @@ namespace RealTimeTabSynchronizer.Server.TabData_
 		public Task IncrementTabIndices(TabRange range, int incrementBy)
 		{
 			var sql = @"
-				UPDATE ""OpenTabs""
+				UPDATE ""TabData""
 				SET ""Index"" = ""Index"" + {0}
 				WHERE ""Index"" >= {1} AND ""Index"" <= {2}";
 

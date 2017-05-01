@@ -6,14 +6,6 @@ function TabManager() {
     browser.tabs.onUpdated.addListener(onTabUpdated);
     browser.tabs.onMoved.addListener(onTabMoved);
 
-    browser.tabs.onAttached.addListener(saveTabsState);
-    browser.tabs.onCreated.addListener(saveTabsState);
-    browser.tabs.onDetached.addListener(saveTabsState);
-    browser.tabs.onMoved.addListener(saveTabsState);
-    browser.tabs.onRemoved.addListener(saveTabsState);
-    browser.tabs.onReplaced.addListener(saveTabsState);
-    browser.tabs.onUpdated.addListener(saveTabsState);
-
     // Temporary variables to prevent invoking server.addTab() for tabs created by addon.
     // capturedEventHandlers and createTabResultPendingCount are strictly needed only on
     // Android due to onCreated event firing first but is nonetheless left also on desktop
@@ -38,7 +30,7 @@ function TabManager() {
 
         createTabResultPendingCount++;
 
-        browser.tabs.create(newTabProperties).then(function(tab) {
+        return browser.tabs.create(newTabProperties).then(function(tab) {
 
             createTabResultPendingCount--;
             tabsCreatedBySynchronizer[tab.id] = true;
@@ -48,50 +40,30 @@ function TabManager() {
             }
 
             capturedEventHandlers = [];
+
+            return { tabId: tab.id, index: tab.index };
         });
     };
 
-    this.moveTab = function(oldTabIndex, newTabIndex) {
-        console.log("moveTab(" + oldTabIndex + ", " + newTabIndex + ")");
-
-        //	browser.tabs.move(oldTabIndex);
+    this.moveTab = function(tabId, index) {
+        // TODO The browser can refuse to move the tab, needs to do something with it?
+        browser.tabs.move(tabId, { index: tabId });
     };
 
-    this.changeTabUrl = function(tabIndex, newUrl) {
-        console.log("changeTabUrl(" + tabIndex + ", " + newUrl + ")");
-
-        // This seems to fail on android tablet when changing many tabs at once
-        browser.tabs.query({ index: tabIndex }).then(function(tabs) {
-            browser.tabs.update(tabs[0].id, { url: newUrl });
-        });
+    this.changeTabUrl = function(tabId, newUrl) {
+        browser.tabs.update(tabId, { url: newUrl });
     };
 
-    this.closeTab = function(tabIndex) {
-        console.log("closeTab(" + tabIndex + ")");
-
-        browser.tabs.query({ index: tabIndex }).then(function(tabs) {
-            browser.tabs.remove(tabs[0].id);
-        });
+    this.closeTab = function(tabId) {
+        browser.tabs.remove(tabId);
     };
 
-    this.activateTab = function(tabIndex) {
-        console.log("activateTab(" + tabIndex + ")");
-
-        browser.tabs.query({ index: tabIndex }).then(function(tabs) {
-            browser.tabs.update(tabs[0].id, { active: true })
-        });
+    this.activateTab = function(tabId) {
+        browser.tabs.update(tabId, { active: true })
     };
 
     this.getAllTabsWithUrls = function() {
         return browser.tabs.query({});
-    }
-
-    // It's not possible to get index of deleted tab in onRemoved() on Android.
-    // On desktop it seems to work just fine.
-    var tabsStateBeforeRemoval = [];
-
-    function saveTabsState() {
-        browser.tabs.query({}).then(function(tabs) { tabsStateBeforeRemoval = tabs });
     }
 
     function onTabCreated(createdTab) {
@@ -100,7 +72,10 @@ function TabManager() {
             console.log(createdTab);
 
             if (!tabsCreatedBySynchronizer.hasOwnProperty(createdTab.id)) {
-                synchronizerServer.addTab(createdTab.index, createdTab.url, !createdTab.active);
+                synchronizerServer.addTab(
+                    createdTab.id,
+                    createdTab.index,
+                    createdTab.url, !createdTab.active);
             }
         });
     }
@@ -110,27 +85,19 @@ function TabManager() {
             console.log("OnRemoved:");
             console.log("TabId: " + tabId);
 
-            var tab = tabsStateBeforeRemoval.find(function(x) { return x.id == tabId });
-
-            synchronizerServer.closeTab(tab.index);
+            synchronizerServer.closeTab(tabId);
         });
     }
 
     function onTabUpdated(tabId, changeInfo, tabInfo) {
         invokeOrInterceptHandler(function() {
             console.log("OnUpdated:");
-            console.log("{");
             console.log("TabId: " + tabId);
             console.log("Changed attributes: ");
             console.log(changeInfo);
-            console.log("New tab Info: ");
-            console.log(tabInfo);
-            console.log("}");
 
             if (changeInfo.url) {
-                browser.tabs.get(tabId).then(function(tab) {
-                    synchronizerServer.changeTabUrl(tab.index, changeInfo.url);
-                });
+                synchronizerServer.changeTabUrl(tabId, changeInfo.url);
             }
         });
     }
@@ -151,9 +118,7 @@ function TabManager() {
             console.log("OnActivated:");
             console.log("TabId: " + activeInfo.tabId);
 
-            browser.tabs.get(activeInfo.tabId).then(function(tab) {
-                synchronizerServer.activateTab(tab.index);
-            })
+            synchronizerServer.activateTab(activeInfo.tabId);
         });
     }
 };

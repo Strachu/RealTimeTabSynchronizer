@@ -18,6 +18,8 @@ using RealTimeTabSynchronizer.Server.Browsers;
 using RealTimeTabSynchronizer.Server.EntityFramework;
 using RealTimeTabSynchronizer.Server.SignalR;
 using RealTimeTabSynchronizer.Server.TabData_;
+using RealTimeTabSynchronizer.Server.TabData_.ClientToServerIdMapping;
+using RealTimeTabSynchronizer.Server.Tabs.Browsers;
 
 namespace RealTimeTabSynchronizer.Server
 {
@@ -53,6 +55,9 @@ namespace RealTimeTabSynchronizer.Server
             services.AddScoped<IBrowserRepository, BrowserRepository>();
             services.AddScoped<IActiveTabDao, ActiveTabDao>();
             services.AddScoped<ITabService, TabService>();
+			services.AddScoped<IBrowserTabRepository, BrowserTabRepository>();
+			services.AddScoped<IBrowserTabIdServerTabIdMapper, BrowserTabIdServerTabIdMapper>();
+			services.AddSingleton<IBrowserConnectionInfoRepository, BrowserConnectionInfoRepository>();
 
             services.AddSingleton<Configurator>();
             services.AddDbContext<TabSynchronizerDbContext>((provider, opts) => provider.GetRequiredService<Configurator>().Configure(opts));
