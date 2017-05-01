@@ -11,7 +11,7 @@ namespace RealTimeTabSynchronizer.Server.Tabs.Browsers
 		{
 			builder.HasKey(x => x.Id);
 
-			builder.HasAlternateKey(x => new { x.BrowserId, x.BrowserTabId });
+			builder.HasIndex(x => new { x.BrowserId, x.BrowserTabId }).IsUnique();
 			builder.HasOne(x => x.ServerTab)
 				.WithMany()
 				.HasForeignKey(x => x.ServerTabId)

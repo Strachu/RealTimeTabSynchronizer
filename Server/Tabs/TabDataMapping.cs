@@ -12,7 +12,7 @@ namespace RealTimeTabSynchronizer.Server.TabData_
 
 			builder.HasKey(x => x.Id);
 
-			builder.HasAlternateKey(x => x.Index);
+			builder.HasIndex(x => x.Index).IsUnique();
 			builder.Property(x => x.Index).HasField("m" + nameof(TabData.Index));
 			builder.Property(x => x.Url)
 				.HasField("m" + nameof(TabData.Url))
