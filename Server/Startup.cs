@@ -23,68 +23,68 @@ using RealTimeTabSynchronizer.Server.Tabs.Browsers;
 
 namespace RealTimeTabSynchronizer.Server
 {
-    public class Startup
-    {
-        private readonly IHostingEnvironment mEnvironment;
+	public class Startup
+	{
+		private readonly IHostingEnvironment mEnvironment;
 
-        public Startup(IHostingEnvironment env)
-        {
-            var builder = new ConfigurationBuilder()
-                .SetBasePath(env.ContentRootPath)
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-                .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
-                .AddEnvironmentVariables();
-            Configuration = builder.Build();
+		public Startup(IHostingEnvironment env)
+		{
+			var builder = new ConfigurationBuilder()
+				 .SetBasePath(env.ContentRootPath)
+				 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+				 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
+				 .AddEnvironmentVariables();
+			Configuration = builder.Build();
 
-            mEnvironment = env;
-        }
+			mEnvironment = env;
+		}
 
-        public IConfigurationRoot Configuration { get; }
+		public IConfigurationRoot Configuration { get; }
 
-        public void ConfigureServices(IServiceCollection services)
-        {
-            services.AddLogging();
-            services.AddCors();
-            services.AddSignalR(x => x.Hubs.EnableDetailedErrors = mEnvironment.IsDevelopment());
+		public void ConfigureServices(IServiceCollection services)
+		{
+			services.AddLogging();
+			services.AddCors();
+			services.AddSignalR(x => x.Hubs.EnableDetailedErrors = mEnvironment.IsDevelopment());
 
-            services.Configure<DatabaseOptions>(Configuration.GetSection("Database"));
+			services.Configure<DatabaseOptions>(Configuration.GetSection("Database"));
 
-            services.AddSingleton<IHubActivator, ScopeHubActivator>();
-            services.AddSingleton<DbContextFactory>();
-            services.AddScoped<ITabDataRepository, TabDataRepository>();
-            services.AddScoped<IBrowserRepository, BrowserRepository>();
-            services.AddScoped<IActiveTabDao, ActiveTabDao>();
-            services.AddScoped<ITabService, TabService>();
+			services.AddSingleton<IHubActivator, ScopeHubActivator>();
+			services.AddSingleton<DbContextFactory>();
+			services.AddScoped<ITabDataRepository, TabDataRepository>();
+			services.AddScoped<IBrowserRepository, BrowserRepository>();
 			services.AddScoped<IBrowserTabRepository, BrowserTabRepository>();
+			services.AddScoped<IActiveTabDao, ActiveTabDao>();
 			services.AddScoped<IBrowserTabIdServerTabIdMapper, BrowserTabIdServerTabIdMapper>();
 			services.AddSingleton<IBrowserConnectionInfoRepository, BrowserConnectionInfoRepository>();
+			services.AddScoped<ITabService, TabService>();
 
-            services.AddSingleton<Configurator>();
-            services.AddDbContext<TabSynchronizerDbContext>((provider, opts) => provider.GetRequiredService<Configurator>().Configure(opts));
-        }
+			services.AddSingleton<Configurator>();
+			services.AddDbContext<TabSynchronizerDbContext>((provider, opts) => provider.GetRequiredService<Configurator>().Configure(opts));
+		}
 
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
-        {
-            loggerFactory.AddConsole(Configuration.GetSection("Logging"));
-            loggerFactory.AddDebug();
+		public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+		{
+			loggerFactory.AddConsole(Configuration.GetSection("Logging"));
+			loggerFactory.AddDebug();
 
-            app.Map("/signalr", map =>
-            {
-                map.UseCors(x =>
-                {
-                    // x.SetIsOriginAllowed(y =>
-                    // {
-                    //     // TODO
-                    //     return true;
-                    //     //return Regex.IsMatch(y, "moz-extension://*") ||
-                    //     //    Regex.IsMatch(y, "^192.168.0.*$");
-                    // })
-                    x.AllowAnyOrigin()
-                        .AllowCredentials();
-                });
-                
-                map.RunSignalR<ScopeHandlingHubDispatcher>();
-            });
-        }
-    }
+			app.Map("/signalr", map =>
+			{
+				map.UseCors(x =>
+					{
+						// x.SetIsOriginAllowed(y =>
+						// {
+						//     // TODO
+						//     return true;
+						//     //return Regex.IsMatch(y, "moz-extension://*") ||
+						//     //    Regex.IsMatch(y, "^192.168.0.*$");
+						// })
+						x.AllowAnyOrigin()
+							 .AllowCredentials();
+					});
+
+				map.RunSignalR<ScopeHandlingHubDispatcher>();
+			});
+		}
+	}
 }
