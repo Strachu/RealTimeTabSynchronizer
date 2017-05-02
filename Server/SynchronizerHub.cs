@@ -14,7 +14,7 @@ using RealTimeTabSynchronizer.Server.Tabs.Browsers;
 
 namespace RealTimeTabSynchronizer.Server
 {
-	public class SynchronizerHub : Hub
+	public class SynchronizerHub : Hub<IBrowserApi>
 	{
 		private static SemaphoreSlim @lock = new SemaphoreSlim(initialCount: 1);
 
@@ -64,7 +64,7 @@ namespace RealTimeTabSynchronizer.Server
 					url = serverTab.Url;
 				}
 
-				await Clients.Others.addTab(Guid.NewGuid(), index, url, createInBackground);
+				await Clients.Others.AddTab(Guid.NewGuid(), index, url, createInBackground);
 			}
 			finally
 			{
@@ -98,7 +98,7 @@ namespace RealTimeTabSynchronizer.Server
 						async (browserTabId, connectionId) =>
 						{
 							// TODO When to update client side tab list? Now or after receiving ack?
-							await Clients.Client(connectionId).moveTab(browserTabId, newIndex);
+							await Clients.Client(connectionId).MoveTab(browserTabId, newIndex);
 						});
 
 					await mUoW.SaveChangesAsync();
@@ -129,7 +129,7 @@ namespace RealTimeTabSynchronizer.Server
 							async (browserTabId, connectionId) =>
 							{
 								// TODO When to update client side tab list? Now or after receiving ack?
-								await Clients.Client(connectionId).closeTab(browserTabId);
+								await Clients.Client(connectionId).CloseTab(browserTabId);
 							});
 					}
 
@@ -161,7 +161,7 @@ namespace RealTimeTabSynchronizer.Server
 							async (browserTabId, connectionId) =>
 							{
 								// TODO When to update client side tab list? Now or after receiving ack?
-								await Clients.Client(connectionId).changeTabUrl(browserTabId, newUrl);
+								await Clients.Client(connectionId).ChangeTabUrl(browserTabId, newUrl);
 							});
 					}
 
@@ -193,7 +193,7 @@ namespace RealTimeTabSynchronizer.Server
 							async (browserTabId, connectionId) =>
 							{
 								// TODO When to update client side tab list? Now or after receiving ack?
-								await Clients.Client(connectionId).activateTab(browserTabId);
+								await Clients.Client(connectionId).ActivateTab(browserTabId);
 							});
 					}
 
@@ -250,7 +250,7 @@ namespace RealTimeTabSynchronizer.Server
 							var newTab = await mTabService.AddTab(tabsAlreadyOnServer.Count + i, newTabs[i].Url, createInBackground: true);
 							allServerTabs.Add(newTab);
 
-							await Clients.Others.addTab(Guid.NewGuid(), tabsAlreadyOnServer.Count + i, newTabs[i].Url, createInBackground: true);
+							await Clients.Others.AddTab(Guid.NewGuid(), tabsAlreadyOnServer.Count + i, newTabs[i].Url, createInBackground: true);
 						}
 
 						var tabsSortedByIndex = currentlyOpenTabs.OrderBy(x => x.Index).ToList();
@@ -262,7 +262,7 @@ namespace RealTimeTabSynchronizer.Server
 
 							if (!oldTabValue.Url.Equals(newTabValue.Url, StringComparison.OrdinalIgnoreCase))
 							{
-								await Clients.Caller.changeTabUrl(oldTabValue.Id, newTabValue.Url);
+								await Clients.Caller.ChangeTabUrl(oldTabValue.Id, newTabValue.Url);
 							}
 
 							var clientSideTab = new BrowserTab()
@@ -280,7 +280,7 @@ namespace RealTimeTabSynchronizer.Server
 							{
 								// TODO what with ACK? We do not know tab Id here
 								// Should probably do the same as in AddTab for others.
-								await Clients.Caller.addTab(Guid.NewGuid(), i, allServerTabs[i].Url, createInBackground: true);
+								await Clients.Caller.AddTab(Guid.NewGuid(), i, allServerTabs[i].Url, createInBackground: true);
 
 								// var clientSideTab = new BrowserTab()
 								// {
@@ -297,7 +297,7 @@ namespace RealTimeTabSynchronizer.Server
 							var duplicatesToRemove = currentlyOpenTabs.Except(openTabsWithoutDuplicates);
 							foreach (var tabToRemove in duplicatesToRemove)
 							{
-								await Clients.Caller.closeTab(tabToRemove.Id);
+								await Clients.Caller.CloseTab(tabToRemove.Id);
 							}
 						}
 					}
