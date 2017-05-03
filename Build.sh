@@ -16,6 +16,7 @@ zip -r9 -j Bin/Firefox/Android/RealTimeTabSynchronizer.xpi \
 	"Client/Firefox/Server.js" \
 	"Client/Firefox/TabManager.js" \
 	"Client/Firefox/Settings.html" \
+	"Client/Firefox/Settings.page.js" \
 	"Client/Firefox/Settings.js" \
 	"Client/Firefox/Android/Overrides.js" \
 
@@ -33,6 +34,7 @@ zip -r9 -j Bin/Firefox/Desktop/RealTimeTabSynchronizer.xpi \
 	"Client/Firefox/Server.js" \
 	"Client/Firefox/TabManager.js" \
 	"Client/Firefox/Settings.html" \
+	"Client/Firefox/Settings.page.js" \
 	"Client/Firefox/Settings.js" \
 	
 echo "Building the server..."
