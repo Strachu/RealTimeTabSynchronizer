@@ -15,7 +15,6 @@ function SynchronizerServer(browserId) {
             .done(function() {
                 console.log("Connected to the server at " + currentServerUrl + ".");
 
-                // TODO It' passed on every request, so maybe we do not need to pass it manually for every method?
                 $.connection.hub.qs = {};
 
                 // TODO It's needed only for first time, optimize it for android?
@@ -88,10 +87,6 @@ function SynchronizerServer(browserId) {
     hub.client.addTab = function(requestId, tabIndex, url, createInBackground) {
         console.log("addTab(" + tabIndex + ", " + url + ", " + createInBackground);
 
-        // tabManager.addTab(tabIndex, url, createInBackground).then(function(tabId, index) {
-        //     // TODO What if we lose connection here?
-        //     hub.server.acknowledgeTabAdded(requestId, tabId);
-        // });
         tabManager.addTab(tabIndex, url, createInBackground).then(function(tabInfo) {
             // TODO What if we lose connection here?
             hub.server.acknowledgeTabAdded(requestId, tabInfo.tabId, tabInfo.index);

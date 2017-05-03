@@ -30,20 +30,44 @@ function TabManager() {
 
         createTabResultPendingCount++;
 
-        return browser.tabs.create(newTabProperties).then(function(tab) {
+        return browser.tabs.create(newTabProperties)
+            .then(
+                onTabCreated,
+                function() {
+                    // Firefox can refuse to create a tabs with some urls, in this case we try again to 
+                    // create (this time empty) tab so that the browser and server is still consistent with
+                    // the tabs except its url.
+                    delete newTabProperties.url;
 
-            createTabResultPendingCount--;
-            tabsCreatedBySynchronizer[tab.id] = true;
+                    console.log("Failed to create a tab with url \"" + url + "\". Will try to create an empty one...");
 
-            for (var i = 0; i < capturedEventHandlers.length; ++i) {
-                capturedEventHandlers[i]();
-            }
-
-            capturedEventHandlers = [];
-
-            return { tabId: tab.id, index: tab.index };
-        });
+                    return browser.tabs.create(newTabProperties)
+                        .then(
+                            onTabCreated,
+                            function(error) {
+                                invokeAllCapturedHandlers();
+                                return Promise.reject(error);
+                            });
+                });
     };
+
+    var onTabCreated = function(tab) {
+        tabsCreatedBySynchronizer[tab.id] = true;
+
+        invokeAllCapturedHandlers();
+
+        return { tabId: tab.id, index: tab.index };
+    }
+
+    var invokeAllCapturedHandlers = function() {
+        createTabResultPendingCount--;
+
+        for (var i = 0; i < capturedEventHandlers.length; ++i) {
+            capturedEventHandlers[i]();
+        }
+
+        capturedEventHandlers = [];
+    }
 
     this.moveTab = function(tabId, index) {
         // TODO The browser can refuse to move the tab, needs to do something with it?
