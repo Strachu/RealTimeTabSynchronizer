@@ -49,12 +49,16 @@ function SynchronizerServer(browserId) {
 
     this.changeServerUrl = function(newServerUrl) {
         if (newServerUrl != currentServerUrl) {
-            currentServerUrl = newServerUrl;
+            currentServerUrl = trimTrailingSlashes(newServerUrl);
 
             $.connection.hub.stop();
             return this.connect();
         }
     };
+
+    var trimTrailingSlashes = function(url) {
+        return url.trim().replace(/[\\/]+$/, "");
+    }
 
     this.addTab = function(tabId, index, url, createInBackground) {
         if ($.connection.hub.state !== $.signalR.connectionState.disconnected) {
