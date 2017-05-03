@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
+using RealTimeTabSynchronizer.Server.Acknowledgments;
 using RealTimeTabSynchronizer.Server.Browsers;
 using RealTimeTabSynchronizer.Server.EntityFramework;
 using RealTimeTabSynchronizer.Server.TabData_;
@@ -26,6 +27,8 @@ namespace RealTimeTabSynchronizer.Server
 		private readonly IBrowserConnectionInfoRepository mConnectionRepository;
 		private readonly IBrowserTabIdServerTabIdMapper mTabIdMapper;
 		private readonly IBrowserTabRepository mBrowserTabRepository;
+		private readonly IBrowserService mBrowserService;
+		private readonly IPendingRequestService mPendingRequestService;
 
 		public SynchronizerHub(
 			ILogger<SynchronizerHub> logger,
@@ -35,7 +38,9 @@ namespace RealTimeTabSynchronizer.Server
 			IBrowserRepository browserRepository,
 			IBrowserConnectionInfoRepository connectionRepository,
 			IBrowserTabIdServerTabIdMapper tabIdMapper,
-			IBrowserTabRepository browserTabRepository)
+			IBrowserTabRepository browserTabRepository,
+			IBrowserService browserService,
+			IPendingRequestService pendingRequestService)
 		{
 			mLogger = logger;
 			mUoW = dbContext;
@@ -45,6 +50,8 @@ namespace RealTimeTabSynchronizer.Server
 			mConnectionRepository = connectionRepository;
 			mTabIdMapper = tabIdMapper;
 			mBrowserTabRepository = browserTabRepository;
+			mBrowserService = browserService;
+			mPendingRequestService = pendingRequestService;
 		}
 
 		public async Task AddTab(Guid browserId, int tabId, int index, string url, bool createInBackground)
@@ -54,17 +61,27 @@ namespace RealTimeTabSynchronizer.Server
 			await @lock.WaitAsync();
 			try
 			{
+				// TODO Incorporate transaction into UoW?
 				using (var transaction = await mUoW.Database.BeginTransactionAsync())
 				{
 					var serverTab = await mTabService.AddTab(browserId, tabId, index, url, createInBackground);
+
+					// TODO Think about crash reliability here... does failing to send a request for one browser
+					// have to cancel adding the tab to server? The original browser will already have this added.
+					var connectedBrowsers = mConnectionRepository.GetConnectedBrowsers();
+					foreach (var browser in connectedBrowsers.Where(x => x.BrowserId != browserId))
+					{
+						await mBrowserService.AddTab(
+							browser.BrowserId,
+							serverTab.Id,
+							serverTab.Index.Value,
+							serverTab.Url,
+							createInBackground);
+					}
+
 					await mUoW.SaveChangesAsync();
-
 					transaction.Commit();
-
-					url = serverTab.Url;
 				}
-
-				await Clients.Others.AddTab(Guid.NewGuid(), index, url, createInBackground);
 			}
 			finally
 			{
@@ -78,7 +95,32 @@ namespace RealTimeTabSynchronizer.Server
 		{
 			mLogger.LogInformation($"Got an acknowledge for tab adding request {requestId}.");
 
-			// TODO Add the tab to client tabs state or experiment with TaskCompletionSource and await
+			// TODO Synchronize is not fully transaction as browser does not take part in transaction.
+			// Needs to split synchronize into smaller transactions so that AcknowledgeTabAdded does not arrive
+			// before request adding finishes, use lock shared only with synchronize or store the commands to
+			// sent to browser in a collection first and issue them only after transaction is committed.
+			await @lock.WaitAsync();
+			try
+			{
+				var requestData = await mPendingRequestService.GetRequestDataByPendingRequestId<AddTabRequestData>(requestId);
+
+				// TODO Do we need to take into account the case in which the server tab's url and url passed
+				// to addTab mismatched?
+				mBrowserTabRepository.Add(new BrowserTab()
+				{
+					BrowserId = requestData.BrowserId,
+					BrowserTabId = tabId,
+					ServerTabId = requestData.ServerTabId
+				});
+
+				mPendingRequestService.SetRequestFulfilled(requestId);
+
+				await mUoW.SaveChangesAsync();
+			}
+			finally
+			{
+				@lock.Release();
+			}
 
 			mLogger.LogInformation("Finished handling the acknowledge for adding request.");
 		}
@@ -95,10 +137,10 @@ namespace RealTimeTabSynchronizer.Server
 					var movedServerTab = await mTabService.MoveTab(browserId, tabId, newIndex);
 
 					await ForEveryOtherConnectedBrowserWithTab(browserId, movedServerTab.Id,
-						async (browserTabId, connectionId) =>
+						async (browserTabId, connectionInfo) =>
 						{
 							// TODO When to update client side tab list? Now or after receiving ack?
-							await Clients.Client(connectionId).MoveTab(browserTabId, newIndex);
+							await Clients.Client(connectionInfo.ConnectionId).MoveTab(browserTabId, newIndex);
 						});
 
 					await mUoW.SaveChangesAsync();
@@ -126,10 +168,10 @@ namespace RealTimeTabSynchronizer.Server
 					if (closedServerTab != null)
 					{
 						await ForEveryOtherConnectedBrowserWithTab(browserId, closedServerTab.Id,
-							async (browserTabId, connectionId) =>
+							async (browserTabId, connectionInfo) =>
 							{
 								// TODO When to update client side tab list? Now or after receiving ack?
-								await Clients.Client(connectionId).CloseTab(browserTabId);
+								await Clients.Client(connectionInfo.ConnectionId).CloseTab(browserTabId);
 							});
 					}
 
@@ -158,10 +200,10 @@ namespace RealTimeTabSynchronizer.Server
 					if (changedServerTab != null)
 					{
 						await ForEveryOtherConnectedBrowserWithTab(browserId, changedServerTab.Id,
-							async (browserTabId, connectionId) =>
+							async (browserTabId, connectionInfo) =>
 							{
 								// TODO When to update client side tab list? Now or after receiving ack?
-								await Clients.Client(connectionId).ChangeTabUrl(browserTabId, newUrl);
+								await Clients.Client(connectionInfo.ConnectionId).ChangeTabUrl(browserTabId, newUrl);
 							});
 					}
 
@@ -190,10 +232,10 @@ namespace RealTimeTabSynchronizer.Server
 					if (activatedServerTab != null)
 					{
 						await ForEveryOtherConnectedBrowserWithTab(browserId, activatedServerTab.Id,
-							async (browserTabId, connectionId) =>
+							async (browserTabId, connectionInfo) =>
 							{
 								// TODO When to update client side tab list? Now or after receiving ack?
-								await Clients.Client(connectionId).ActivateTab(browserTabId);
+								await Clients.Client(connectionInfo.ConnectionId).ActivateTab(browserTabId);
 							});
 					}
 
@@ -246,11 +288,20 @@ namespace RealTimeTabSynchronizer.Server
 						var allServerTabs = new List<TabData>(tabsAlreadyOnServer);
 						for (int i = 0; i < newTabs.Count; ++i)
 						{
-							// TODO what with ACK?
 							var newTab = await mTabService.AddTab(tabsAlreadyOnServer.Count + i, newTabs[i].Url, createInBackground: true);
-							allServerTabs.Add(newTab);
 
-							await Clients.Others.AddTab(Guid.NewGuid(), tabsAlreadyOnServer.Count + i, newTabs[i].Url, createInBackground: true);
+							var connectedBrowsers = mConnectionRepository.GetConnectedBrowsers();
+							foreach (var otherBrowser in connectedBrowsers.Where(x => x.BrowserId != browserId))
+							{
+								await mBrowserService.AddTab(
+									otherBrowser.BrowserId,
+									newTab.Id,
+									newTab.Index.Value,
+									newTab.Url,
+									createInBackground: true);
+							}
+
+							allServerTabs.Add(newTab);
 						}
 
 						var tabsSortedByIndex = currentlyOpenTabs.OrderBy(x => x.Index).ToList();
@@ -274,21 +325,18 @@ namespace RealTimeTabSynchronizer.Server
 							mBrowserTabRepository.Add(clientSideTab);
 						}
 
+						await mUoW.SaveChangesAsync(); // Retrieve automatically assigned ids from database
 						if (allServerTabs.Count > newTabs.Count)
 						{
 							for (int i = currentlyOpenTabs.Count; i < allServerTabs.Count; ++i)
 							{
-								// TODO what with ACK? We do not know tab Id here
-								// Should probably do the same as in AddTab for others.
-								await Clients.Caller.AddTab(Guid.NewGuid(), i, allServerTabs[i].Url, createInBackground: true);
-
-								// var clientSideTab = new BrowserTab()
-								// {
-								// 	BrowserId = browserId,
-								// 	BrowserTabId = oldTabValue.Id,
-								// 	ServerTab = tabsAlreadyOnServer[i]
-								// };
-								// mBrowserTabRepository.Add(clientSideTab);
+								var serverTab = allServerTabs[i];
+								await mBrowserService.AddTab(
+									browserId,
+									serverTab.Id,
+									serverTab.Index.Value,
+									serverTab.Url,
+									createInBackground: true);
 							}
 						}
 						else
@@ -342,7 +390,7 @@ namespace RealTimeTabSynchronizer.Server
 		private async Task ForEveryOtherConnectedBrowserWithTab(
 			Guid currentBrowserId,
 			int serverTabId,
-			 Func<int, string, Task> action)
+			 Func<int, BrowserConnectionInfo, Task> action)
 		{
 			var connectedBrowsers = mConnectionRepository.GetConnectedBrowsers();
 			foreach (var browser in connectedBrowsers.Where(x => x.BrowserId != currentBrowserId))
@@ -354,7 +402,7 @@ namespace RealTimeTabSynchronizer.Server
 					continue;
 				}
 
-				await action(browserTabId.Value, browser.ConnectionId);
+				await action(browserTabId.Value, browser);
 			}
 		}
 	}

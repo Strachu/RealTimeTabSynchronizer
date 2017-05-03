@@ -32,7 +32,10 @@ namespace RealTimeTabSynchronizer.Server.TabData_
 
 		public async Task<IEnumerable<TabData>> GetAllTabs()
 		{
-			return await mContext.Tabs.OrderBy(x => x.Index).ToListAsync();
+			return await mContext.Tabs
+				.Where(x => x.Index != null)
+				.OrderBy(x => x.Index)
+				.ToListAsync();
 		}
 
 		public Task<TabData> GetByIndex(int index)

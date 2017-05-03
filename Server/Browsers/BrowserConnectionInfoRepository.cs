@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace RealTimeTabSynchronizer.Server.Browsers
 {
@@ -28,6 +29,11 @@ namespace RealTimeTabSynchronizer.Server.Browsers
 		public IEnumerable<BrowserConnectionInfo> GetConnectedBrowsers()
 		{
 			return mConnectionInfoByConnectionId.Values;
+		}
+
+		public BrowserConnectionInfo GetByBrowserId(Guid browserId)
+		{
+			return mConnectionInfoByConnectionId.Values.SingleOrDefault(x => x.BrowserId == browserId);
 		}
 	}
 }

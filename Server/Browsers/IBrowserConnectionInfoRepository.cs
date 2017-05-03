@@ -9,5 +9,6 @@ namespace RealTimeTabSynchronizer.Server.Browsers
 		void RemoveConnection(string connectionId);
 
 		IEnumerable<BrowserConnectionInfo> GetConnectedBrowsers();
+		BrowserConnectionInfo GetByBrowserId(Guid browserId);
 	}
 }

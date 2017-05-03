@@ -9,11 +9,13 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Hubs;
+using Microsoft.AspNetCore.SignalR.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using RealTimeTabSynchronizer.Server.Acknowledgments;
 using RealTimeTabSynchronizer.Server.Browsers;
 using RealTimeTabSynchronizer.Server.EntityFramework;
 using RealTimeTabSynchronizer.Server.SignalR;
@@ -50,6 +52,9 @@ namespace RealTimeTabSynchronizer.Server
 			services.Configure<DatabaseOptions>(Configuration.GetSection("Database"));
 
 			services.AddSingleton<IHubActivator, ScopeHubActivator>();
+			services.AddTransient<IHubContext<SynchronizerHub, IBrowserApi>>(
+				x => x.GetService<IConnectionManager>().GetHubContext<SynchronizerHub, IBrowserApi>());
+
 			services.AddSingleton<DbContextFactory>();
 			services.AddScoped<ITabDataRepository, TabDataRepository>();
 			services.AddScoped<IBrowserRepository, BrowserRepository>();
@@ -58,6 +63,8 @@ namespace RealTimeTabSynchronizer.Server
 			services.AddScoped<IBrowserTabIdServerTabIdMapper, BrowserTabIdServerTabIdMapper>();
 			services.AddSingleton<IBrowserConnectionInfoRepository, BrowserConnectionInfoRepository>();
 			services.AddScoped<ITabService, TabService>();
+			services.AddScoped<IPendingRequestService, PendingRequestService>();
+			services.AddScoped<IBrowserService, BrowserService>();
 
 			services.AddSingleton<Configurator>();
 			services.AddDbContext<TabSynchronizerDbContext>((provider, opts) => provider.GetRequiredService<Configurator>().Configure(opts));

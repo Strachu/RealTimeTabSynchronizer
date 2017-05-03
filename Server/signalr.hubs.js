@@ -81,23 +81,27 @@
         proxies['synchronizerHub'] = this.createHubProxy('synchronizerHub'); 
         proxies['synchronizerHub'].client = { };
         proxies['synchronizerHub'].server = {
-            activateTab: function (browserId, tabIndex) {
+            acknowledgeTabAdded: function (requestId, tabId, index) {
+                return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["AcknowledgeTabAdded"], $.makeArray(arguments)));
+             },
+
+            activateTab: function (browserId, tabId) {
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["ActivateTab"], $.makeArray(arguments)));
              },
 
-            addTab: function (browserId, tabIndex, url, createInBackground) {
+            addTab: function (browserId, tabId, index, url, createInBackground) {
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["AddTab"], $.makeArray(arguments)));
              },
 
-            changeTabUrl: function (browserId, tabIndex, newUrl) {
+            changeTabUrl: function (browserId, tabId, newUrl) {
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["ChangeTabUrl"], $.makeArray(arguments)));
              },
 
-            closeTab: function (browserId, tabIndex) {
+            closeTab: function (browserId, tabId) {
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["CloseTab"], $.makeArray(arguments)));
              },
 
-            moveTab: function (browserId, oldTabIndex, newTabIndex) {
+            moveTab: function (browserId, tabId, newIndex) {
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["MoveTab"], $.makeArray(arguments)));
              },
 
