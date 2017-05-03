@@ -8,6 +8,8 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using RealTimeTabSynchronizer.Server.Acknowledgments;
 using RealTimeTabSynchronizer.Server.Browsers;
+using RealTimeTabSynchronizer.Server.DiffCalculation;
+using RealTimeTabSynchronizer.Server.DiffCalculation.Dto;
 using RealTimeTabSynchronizer.Server.EntityFramework;
 using RealTimeTabSynchronizer.Server.TabData_;
 using RealTimeTabSynchronizer.Server.TabData_.ClientToServerIdMapping;
@@ -29,6 +31,7 @@ namespace RealTimeTabSynchronizer.Server
 		private readonly IBrowserTabRepository mBrowserTabRepository;
 		private readonly IBrowserService mBrowserService;
 		private readonly IPendingRequestService mPendingRequestService;
+		private readonly ITabActionDeserializer mTabActionDeserializer;
 
 		public SynchronizerHub(
 			ILogger<SynchronizerHub> logger,
@@ -40,7 +43,8 @@ namespace RealTimeTabSynchronizer.Server
 			IBrowserTabIdServerTabIdMapper tabIdMapper,
 			IBrowserTabRepository browserTabRepository,
 			IBrowserService browserService,
-			IPendingRequestService pendingRequestService)
+			IPendingRequestService pendingRequestService,
+			ITabActionDeserializer tabActionDeserializer)
 		{
 			mLogger = logger;
 			mUoW = dbContext;
@@ -52,6 +56,7 @@ namespace RealTimeTabSynchronizer.Server
 			mBrowserTabRepository = browserTabRepository;
 			mBrowserService = browserService;
 			mPendingRequestService = pendingRequestService;
+			mTabActionDeserializer = tabActionDeserializer;
 		}
 
 		public async Task AddTab(Guid browserId, int tabId, int index, string url, bool createInBackground)
@@ -253,7 +258,7 @@ namespace RealTimeTabSynchronizer.Server
 
 		public async Task Synchronize(
 			Guid browserId,
-			IReadOnlyCollection<JObject> changesSinceLastConnection,
+			IReadOnlyCollection<object> changesSinceLastConnection,
 			IReadOnlyCollection<TabData> currentlyOpenTabs)
 		{
 			await @lock.WaitAsync();
@@ -338,12 +343,75 @@ namespace RealTimeTabSynchronizer.Server
 					}
 					else
 					{
-						// TODO Map changesSinceLastConnection to classes.
+						var browserChanges = changesSinceLastConnection.Select(mTabActionDeserializer.Deserialize);
 
 						// TODO Compute diff, solve any conflicts
-
 						// TODO Update Mapping
+
+						// TODO Extract into TabActionToHubMethodsDispatcher if it will work nicely with conflicts
+						foreach (var change in browserChanges)
+						{
+							switch (change)
+							{
+								case TabCreatedDto dto:
+									var serverTab = await mTabService.AddTab(browserId, dto.TabId, dto.Index, dto.Url, dto.CreateInBackground);
+
+									// Again... EF is annoying with it's ids... switch over to guids?
+									await mUoW.SaveChangesAsync(); // Retrieve automatically assigned ids from database
+
+									var connectedBrowsers = mConnectionRepository.GetConnectedBrowsers();
+									foreach (var otherBrowser in connectedBrowsers.Where(x => x.BrowserId != browserId))
+									{
+										await mBrowserService.AddTab(
+											otherBrowser.BrowserId,
+											serverTab.Id,
+											serverTab.Index.Value,
+											serverTab.Url,
+											dto.CreateInBackground);
+									}
+									break;
+
+								case TabUrlChangedDto dto:
+									var changedServerTab = await mTabService.ChangeTabUrl(browserId, dto.TabId, dto.NewUrl);
+									if (changedServerTab != null)
+									{
+										await ForEveryOtherConnectedBrowserWithTab(browserId, changedServerTab.Id,
+											async (browserTabId, connectionInfo) =>
+											{
+												// TODO When to update client side tab list? Now or after receiving ack?
+												await Clients.Client(connectionInfo.ConnectionId).ChangeTabUrl(browserTabId, dto.NewUrl);
+											});
+									}
+									break;
+
+								case TabMovedDto dto:
+									var movedServerTab = await mTabService.MoveTab(browserId, dto.TabId, dto.NewIndex);
+
+									await ForEveryOtherConnectedBrowserWithTab(browserId, movedServerTab.Id,
+										async (browserTabId, connectionInfo) =>
+										{
+											// TODO When to update client side tab list? Now or after receiving ack?
+											await Clients.Client(connectionInfo.ConnectionId).MoveTab(browserTabId, dto.NewIndex);
+										});
+									break;
+
+								case TabClosedDto dto:
+									var closedServerTab = await mTabService.CloseTab(browserId, dto.TabId);
+									if (closedServerTab != null)
+									{
+										await ForEveryOtherConnectedBrowserWithTab(browserId, closedServerTab.Id,
+											async (browserTabId, connectionInfo) =>
+											{
+												// TODO When to update client side tab list? Now or after receiving ack?
+												await Clients.Client(connectionInfo.ConnectionId).CloseTab(browserTabId);
+											});
+									}
+									break;
+							}
+						}
 					}
+
+					// TODO What with active tab??
 
 					await mUoW.SaveChangesAsync();
 					transaction.Commit();

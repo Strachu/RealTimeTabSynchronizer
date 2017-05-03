@@ -50,7 +50,7 @@ namespace RealTimeTabSynchronizer.Server
 
 		public async Task<TabData> AddTab(Guid browserId, int tabId, int tabIndex, string url, bool createInBackground)
 		{
-			var newTab = await AddTab(tabIndex, url, createInBackground); ;
+			var newTab = await AddTab(tabIndex, url, createInBackground);
 			var browserTab = new BrowserTab { BrowserId = browserId, BrowserTabId = tabId, ServerTab = newTab };
 
 			mBrowserTabRepository.Add(browserTab);
