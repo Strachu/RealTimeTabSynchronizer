@@ -67,6 +67,7 @@ namespace RealTimeTabSynchronizer.Server
 			services.AddScoped<IBrowserService, BrowserService>();
 
 			services.AddSingleton<Configurator>();
+			services.AddSingleton<IModelBuildingService, ModelBuildingService>();
 			services.AddDbContext<TabSynchronizerDbContext>((provider, opts) => provider.GetRequiredService<Configurator>().Configure(opts));
 		}
 

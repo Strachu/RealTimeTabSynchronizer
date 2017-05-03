@@ -10,9 +10,14 @@ namespace RealTimeTabSynchronizer.Server.EntityFramework
 {
 	public class TabSynchronizerDbContext : DbContext
 	{
-		public TabSynchronizerDbContext(DbContextOptions<TabSynchronizerDbContext> options)
+		private readonly IModelBuildingService mModelBuildingService;
+
+		public TabSynchronizerDbContext(
+			DbContextOptions<TabSynchronizerDbContext> options,
+			IModelBuildingService modelBuildingService)
 			: base(options)
 		{
+			mModelBuildingService = modelBuildingService;
 		}
 
 		public DbSet<TabData> Tabs { get; set; }
@@ -23,11 +28,7 @@ namespace RealTimeTabSynchronizer.Server.EntityFramework
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
-			modelBuilder.AddConfiguration(new TabDataMapping());
-			modelBuilder.AddConfiguration(new ActiveTabMapping());
-			modelBuilder.AddConfiguration(new BrowserMapping());
-			modelBuilder.AddConfiguration(new BrowserTabMapping());
-			modelBuilder.AddConfiguration(new PendingRequestMapping());
+			mModelBuildingService.ConfigureEntitiesMapping(modelBuilder);
 		}
 	}
 }
