@@ -276,13 +276,11 @@ namespace RealTimeTabSynchronizer.Server
 
 						var tabsAlreadyOnServer = (await mTabDataRepository.GetAllTabs()).ToList();
 						var tabsAlreadyOnServerByUrl = tabsAlreadyOnServer.GroupBy(x => x.Url, StringComparer.OrdinalIgnoreCase).ToDictionary(x => x.Key, x => x.First(), StringComparer.OrdinalIgnoreCase);
-						var openTabsWithoutDuplicates = currentlyOpenTabs.GroupBy(x => x.Url, StringComparer.OrdinalIgnoreCase).Select(x => x.First()).ToList();
-						var newTabs = openTabsWithoutDuplicates.Where(x => !tabsAlreadyOnServerByUrl.ContainsKey(x.Url)).ToList();
+						var newTabs = currentlyOpenTabs.Where(x => !tabsAlreadyOnServerByUrl.ContainsKey(x.Url)).ToList();
 
 						mLogger.LogDebug($"Tabs already on server: {tabsAlreadyOnServer.Count}");
 						mLogger.LogDebug($"Tabs already on server ignoring duplicates: {tabsAlreadyOnServerByUrl.Count}");
 						mLogger.LogDebug($"Browser tabs: {currentlyOpenTabs.Count}");
-						mLogger.LogDebug($"Browser tags ignoring duplicates: {openTabsWithoutDuplicates.Count}");
 						mLogger.LogDebug($"New tabs: {newTabs.Count}");
 
 						var allServerTabs = new List<TabData>(tabsAlreadyOnServer);
@@ -326,27 +324,16 @@ namespace RealTimeTabSynchronizer.Server
 						}
 
 						await mUoW.SaveChangesAsync(); // Retrieve automatically assigned ids from database
-						if (allServerTabs.Count > newTabs.Count)
+
+						for (int i = currentlyOpenTabs.Count; i < allServerTabs.Count; ++i)
 						{
-							for (int i = currentlyOpenTabs.Count; i < allServerTabs.Count; ++i)
-							{
-								var serverTab = allServerTabs[i];
-								await mBrowserService.AddTab(
-									browserId,
-									serverTab.Id,
-									serverTab.Index.Value,
-									serverTab.Url,
-									createInBackground: true);
-							}
-						}
-						else
-						{
-							// TODO Should we remove duplicates on first run? Maybe leave the tabs as is?
-							var duplicatesToRemove = currentlyOpenTabs.Except(openTabsWithoutDuplicates);
-							foreach (var tabToRemove in duplicatesToRemove)
-							{
-								await Clients.Caller.CloseTab(tabToRemove.Id);
-							}
+							var serverTab = allServerTabs[i];
+							await mBrowserService.AddTab(
+								browserId,
+								serverTab.Id,
+								serverTab.Index.Value,
+								serverTab.Url,
+								createInBackground: true);
 						}
 					}
 					else
