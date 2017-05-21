@@ -73,7 +73,8 @@ namespace RealTimeTabSynchronizer.Server
 				return null;
 			}
 
-			tab.ServerTab.Index = newTabIndex;
+			// To prevent UNIQUE violation when decrementing other tabs indices.
+			tab.ServerTab.Index = null;
 
 			// EF doesn't play nice with raw sql due to it's UoW.
 			await mDbContext.SaveChangesAsync();
@@ -90,6 +91,8 @@ namespace RealTimeTabSynchronizer.Server
 					new TabRange(newTabIndex, newTabIndex - 1),
 					incrementBy: 1);
 			}
+
+			tab.ServerTab.Index = newTabIndex;
 
 			return tab.ServerTab;
 		}

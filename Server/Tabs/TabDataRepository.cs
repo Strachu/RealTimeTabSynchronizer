@@ -50,10 +50,31 @@ namespace RealTimeTabSynchronizer.Server.TabData_
 
 		public Task IncrementTabIndices(TabRange range, int incrementBy)
 		{
-			var sql = @"
-				UPDATE ""TabData""
-				SET ""Index"" = ""Index"" + {0}
-				WHERE ""Index"" >= {1} AND ""Index"" <= {2}";
+			var sql = String.Empty;
+
+			// http://stackoverflow.com/a/7703239/2579010
+			if (incrementBy > 0)
+			{
+				sql = @"
+					UPDATE ""TabData""
+					SET ""Index"" = -""Index"" - {0}
+					WHERE ""Index"" >= {1} AND ""Index"" <= {2};
+					
+					UPDATE ""TabData""
+					SET ""Index"" = -""Index""
+					WHERE ""Index"" < 0;";
+			}
+			else
+			{
+				sql = @"
+					UPDATE ""TabData""
+					SET ""Index"" = -""Index"" + {0}
+					WHERE ""Index"" >= {1} AND ""Index"" <= {2};
+					
+					UPDATE ""TabData""
+					SET ""Index"" = -""Index"" + 2 * {0}
+					WHERE ""Index"" < 0;";
+			}
 
 			sql = Regex.Replace(sql, @"\s+", " ");
 
