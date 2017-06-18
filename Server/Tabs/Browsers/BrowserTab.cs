@@ -11,6 +11,6 @@ namespace RealTimeTabSynchronizer.Server.Tabs.Browsers
 		public Guid BrowserId { get; set; }
 
 		public int ServerTabId { get; set; }
-		public TabData ServerTab { get; set; }
+		public virtual TabData ServerTab { get; set; }
 	}
 }

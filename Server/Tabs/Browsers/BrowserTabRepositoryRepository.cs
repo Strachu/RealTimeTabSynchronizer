@@ -29,7 +29,10 @@ namespace RealTimeTabSynchronizer.Server.Tabs.Browsers
 
 		public async Task<IEnumerable<BrowserTab>> GetAllBrowsersTabs(Guid browserId)
 		{
-			return await mContext.BrowserTabs.OrderBy(x => x.ServerTab.Index).ToListAsync();
+			return await mContext.BrowserTabs
+				.Include(x => x.ServerTab)
+				.Where(x => x.BrowserId == browserId)
+				.OrderBy(x => x.ServerTab.Index).ToListAsync();
 		}
 
 		public Task<BrowserTab> GetByBrowserTabId(Guid browserId, int tabId)
