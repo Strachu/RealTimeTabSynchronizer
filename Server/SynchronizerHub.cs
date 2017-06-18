@@ -343,18 +343,45 @@ namespace RealTimeTabSynchronizer.Server
 					}
 					else
 					{
-						var browserChanges = changesSinceLastConnection.Select(mTabActionDeserializer.Deserialize);
+						var browserChanges = changesSinceLastConnection.Select(mTabActionDeserializer.Deserialize).ToList();
 
-						// TODO Compute diff, solve any conflicts
-						// TODO Update Mapping
+						// TODO Optimize the changes
+
+						var browserStateOnLastUpdate = (await mBrowserTabRepository.GetAllBrowsersTabs(browserId)).ToList();
+
+						UpdateBrowserTabIdMapping(browserStateOnLastUpdate, currentlyOpenTabs, browserChanges);
+
+						await mUoW.SaveChangesAsync();
+
+						// TODO Apply changes from server
 
 						// TODO Extract into TabActionToHubMethodsDispatcher if it will work nicely with conflicts
+						var newIdsByIndex = currentlyOpenTabs.ToDictionary(x => x.Index, x => x.Id); // TODO Its done second time
 						foreach (var change in browserChanges)
 						{
+							var changesAfterThisOne = browserChanges.SkipWhile(x => x != change).Skip(1);
+							var newIndex = GetTabIndexAfterChanges(change.TabIndex, changesAfterThisOne);
+							int tabId;
+							if (newIndex == null)
+							{
+								var previousIndex = GetTabIndexBeforeChanges(change.TabIndex, browserChanges.TakeWhile(x => x != change));
+								if (previousIndex == null)
+								{
+									// Could be added and removed before update -> TODO should be optimized out
+									continue;
+								}
+
+								tabId = browserStateOnLastUpdate.Single(x => x.ServerTab.Index == previousIndex).BrowserTabId;
+							}
+							else
+							{
+								tabId = newIdsByIndex[newIndex];
+							}
+
 							switch (change)
 							{
 								case TabCreatedDto dto:
-									var serverTab = await mTabService.AddTab(browserId, dto.TabId, dto.Index, dto.Url, dto.CreateInBackground);
+									var serverTab = await mTabService.AddTab(browserId, tabId, dto.TabIndex, dto.Url, dto.CreateInBackground);
 
 									// Again... EF is annoying with it's ids... switch over to guids?
 									await mUoW.SaveChangesAsync(); // Retrieve automatically assigned ids from database
@@ -372,7 +399,7 @@ namespace RealTimeTabSynchronizer.Server
 									break;
 
 								case TabUrlChangedDto dto:
-									var changedServerTab = await mTabService.ChangeTabUrl(browserId, dto.TabId, dto.NewUrl);
+									var changedServerTab = await mTabService.ChangeTabUrl(browserId, tabId, dto.NewUrl);
 									if (changedServerTab != null)
 									{
 										await ForEveryOtherConnectedBrowserWithTab(browserId, changedServerTab.Id,
@@ -385,7 +412,7 @@ namespace RealTimeTabSynchronizer.Server
 									break;
 
 								case TabMovedDto dto:
-									var movedServerTab = await mTabService.MoveTab(browserId, dto.TabId, dto.NewIndex);
+									var movedServerTab = await mTabService.MoveTab(browserId, tabId, dto.NewIndex);
 
 									await ForEveryOtherConnectedBrowserWithTab(browserId, movedServerTab.Id,
 										async (browserTabId, connectionInfo) =>
@@ -396,7 +423,7 @@ namespace RealTimeTabSynchronizer.Server
 									break;
 
 								case TabClosedDto dto:
-									var closedServerTab = await mTabService.CloseTab(browserId, dto.TabId);
+									var closedServerTab = await mTabService.CloseTab(browserId, tabId);
 									if (closedServerTab != null)
 									{
 										await ForEveryOtherConnectedBrowserWithTab(browserId, closedServerTab.Id,
@@ -423,6 +450,126 @@ namespace RealTimeTabSynchronizer.Server
 			}
 
 			mLogger.LogInformation($"Finished synchronizing tabs...");
+		}
+
+		private void UpdateBrowserTabIdMapping(
+			IReadOnlyCollection<BrowserTab> browserTabsOnServer,
+			IReadOnlyCollection<TabData> browserTabsOnBrowser,
+			IReadOnlyCollection<TabAction> actionDoneSinceLastServerUpdate)
+		{
+			var newTabsByIndex = browserTabsOnBrowser.ToDictionary(x => x.Index);
+
+			foreach (var tabOnServer in browserTabsOnServer)
+			{
+				// TODO We need to also maintain tab index for client as tab index could be changed
+				// server side.
+				var oldIndex = tabOnServer.ServerTab.Index.Value;
+				var newIndex = GetTabIndexAfterChanges(oldIndex, actionDoneSinceLastServerUpdate);
+				if (newIndex == null)
+				{
+					// Will be removed in the next step but id needs to be unique.
+					tabOnServer.BrowserTabId = -tabOnServer.BrowserTabId;
+				}
+				else
+				{
+					tabOnServer.BrowserTabId = newTabsByIndex[newIndex].Id;
+				}
+			}
+		}
+
+		private int? GetTabIndexAfterChanges(int currentIndex, IEnumerable<TabAction> changes)
+		{
+			var newIndex = currentIndex;
+
+			foreach (var change in changes)
+			{
+				switch (change)
+				{
+					case TabCreatedDto dto:
+						if (dto.TabIndex <= newIndex)
+						{
+							newIndex++;
+						}
+						break;
+
+					case TabClosedDto dto:
+						if (dto.TabIndex == newIndex)
+						{
+							return null;
+						}
+
+						if (dto.TabIndex < newIndex)
+						{
+							newIndex--;
+						}
+						break;
+
+					case TabMovedDto dto:
+						if (dto.TabIndex == newIndex)
+						{
+							newIndex = dto.NewIndex;
+						}
+						else if (dto.TabIndex > newIndex && dto.NewIndex <= newIndex)
+						{
+							newIndex++;
+						}
+						else if (dto.TabIndex < newIndex && dto.NewIndex > newIndex)
+						{
+							newIndex--;
+						}
+						break;
+				}
+			}
+
+			return newIndex;
+		}
+
+		// TODO Refactor -> very similar to GetTabIndexAfterChanges
+		private int? GetTabIndexBeforeChanges(int newIndex, IEnumerable<TabAction> changes)
+		{
+			var oldIndex = newIndex;
+
+			foreach (var change in changes.Reverse())
+			{
+				switch (change)
+				{
+					case TabCreatedDto dto:
+						if (dto.TabIndex == oldIndex)
+						{
+							return null;
+						}
+
+						if (dto.TabIndex < oldIndex)
+						{
+							oldIndex--;
+						}
+						break;
+
+					case TabClosedDto dto:
+						if (dto.TabIndex <= oldIndex)
+						{
+							oldIndex++;
+						}
+						break;
+
+					case TabMovedDto dto:
+						if (dto.NewIndex == oldIndex)
+						{
+							oldIndex = dto.TabIndex;
+						}
+						else if (dto.TabIndex > oldIndex && dto.NewIndex <= oldIndex)
+						{
+							oldIndex--;
+						}
+						else if (dto.TabIndex < oldIndex && dto.NewIndex > oldIndex)
+						{
+							oldIndex++;
+						}
+						break;
+				}
+			}
+
+			return newIndex;
 		}
 
 		public override Task OnConnected()

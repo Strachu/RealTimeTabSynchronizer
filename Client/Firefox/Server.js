@@ -63,29 +63,39 @@ function SynchronizerServer(browserId) {
     this.addTab = function(tabId, index, url, createInBackground) {
         if ($.connection.hub.state !== $.signalR.connectionState.disconnected) {
             hub.server.addTab(browserId, tabId, index, url, createInBackground);
-        } else
-            changeTracker.addTab(tabId, index, url, createInBackground);
+        } else {
+            changeTracker.addTab(index, url, createInBackground);
+        }
     }
 
     this.changeTabUrl = function(tabId, url) {
         if ($.connection.hub.state !== $.signalR.connectionState.disconnected) {
             hub.server.changeTabUrl(browserId, tabId, url);
-        } else
-            changeTracker.changeTabUrl(tabId, url);
+        } else {
+            tabManager.getTabIndexByTabId(tabId).then(function(tabIndex) {
+                changeTracker.changeTabUrl(tabIndex, url);
+            });
+        }
     }
 
     this.closeTab = function(tabId) {
         if ($.connection.hub.state !== $.signalR.connectionState.disconnected) {
             hub.server.closeTab(browserId, tabId);
-        } else
-            changeTracker.closeTab(tabId);
+        } else {
+            tabManager.getTabIndexByTabId(tabId).then(function(tabIndex) {
+                changeTracker.closeTab(tabIndex);
+            });
+        }
     }
 
     this.activateTab = function(tabId) {
         if ($.connection.hub.state !== $.signalR.connectionState.disconnected) {
             hub.server.activateTab(browserId, tabId);
-        } else
-            changeTracker.activateTab(tabId);
+        } else {
+            tabManager.getTabIndexByTabId(tabId).then(function(tabIndex) {
+                changeTracker.activateTab(tabIndex);
+            });
+        }
     }
 
     hub.client.addTab = function(requestId, tabIndex, url, createInBackground) {

@@ -90,6 +90,12 @@ function TabManager() {
         return browser.tabs.query({});
     }
 
+    this.getTabIndexByTabId = function(tabId) {
+        return browser.tabs.get(tabId).then(function(tabInfo) {
+            return Promise.resolve(tabInfo.index);
+        })
+    }
+
     function onTabCreated(createdTab) {
         invokeOrInterceptHandler(function() {
             console.log("OnCreated:");

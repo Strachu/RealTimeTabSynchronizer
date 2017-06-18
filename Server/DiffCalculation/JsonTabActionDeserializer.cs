@@ -46,6 +46,8 @@ namespace RealTimeTabSynchronizer.Server.DiffCalculation
 				var property = base.CreateProperty(member, memberSerialization);
 				if (property.UnderlyingName == nameof(TabAction.ActionTime))
 					property.PropertyName = "dateTime";
+				else if (property.UnderlyingName == nameof(TabAction.TabIndex))
+					property.PropertyName = "index";
 
 				return property;
 			}

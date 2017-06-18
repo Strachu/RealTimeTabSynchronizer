@@ -1,40 +1,38 @@
 var changeTracker = {
     storageKey: "changeTracker_StorageKey",
 
-    addTab: function(tabId, index, url, createInBackground) {
+    addTab: function(tabIndex, url, createInBackground) {
         changeTracker._pushChange({
             type: "createTab",
             dateTime: new Date(),
-            tabId: tabId,
-            index: index,
+            index: tabIndex,
             url: url,
             createInBackground: createInBackground
         });
     },
 
-    moveTab: function(tabId, oldIndex, newIndex) {
+    moveTab: function(tabIndex, newIndex) {
         changeTracker._pushChange({
             type: "moveTab",
             dateTime: new Date(),
-            tabId: tabId,
-            oldIndex: oldIndex,
+            index: tabIndex,
             newIndex: newIndex
         });
     },
 
-    closeTab: function(tabId) {
+    closeTab: function(tabIndex) {
         changeTracker._pushChange({
             type: "closeTab",
             dateTime: new Date(),
-            tabId: tabId
+            index: tabIndex
         });
     },
 
-    changeTabUrl: function(tabId, newUrl) {
+    changeTabUrl: function(tabIndex, newUrl) {
         changeTracker._pushChange({
             type: "changeTabUrl",
             dateTime: new Date(),
-            tabId: tabId,
+            index: tabIndex,
             newUrl: newUrl
         });
     },
