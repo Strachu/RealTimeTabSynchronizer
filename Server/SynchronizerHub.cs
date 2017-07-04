@@ -340,6 +340,17 @@ namespace RealTimeTabSynchronizer.Server
 								serverTab.Url,
 								createInBackground: true);
 						}
+
+						// Test Case:
+						// New browser is added with duplicate tabs which already exists on server
+						// The duplicated tab is not added to server but remaining open tabs are not closed
+						// TODO Convert test case to unit test
+						for (int i = currentlyOpenTabs.Count - 1; i >= allServerTabs.Count; --i)
+						{
+							var openTab = tabsSortedByIndex[i];
+
+							await Clients.Caller.CloseTab(openTab.Id);
+						}
 					}
 					else
 					{
