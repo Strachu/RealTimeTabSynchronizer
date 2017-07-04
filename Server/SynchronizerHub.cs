@@ -293,6 +293,8 @@ namespace RealTimeTabSynchronizer.Server
 						{
 							var newTab = await mTabService.AddTab(tabsAlreadyOnServer.Count + i, newTabs[i].Url, createInBackground: true);
 
+							await mUoW.SaveChangesAsync(); // Retrieve automatically assigned id from database
+
 							var connectedBrowsers = mConnectionRepository.GetConnectedBrowsers();
 							foreach (var otherBrowser in connectedBrowsers.Where(x => x.BrowserId != browserId))
 							{
@@ -316,6 +318,7 @@ namespace RealTimeTabSynchronizer.Server
 
 							if (!oldTabValue.Url.Equals(newTabValue.Url, StringComparison.OrdinalIgnoreCase))
 							{
+								// TODO This does not throw when client has disconnected!
 								await Clients.Caller.ChangeTabUrl(oldTabValue.Id, newTabValue.Url);
 							}
 
