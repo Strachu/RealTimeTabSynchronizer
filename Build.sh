@@ -44,5 +44,6 @@ cd Server
 dotnet build -c Release
 cd ..
 cp -R Server/bin/Release Bin/Server
+cp Server/appsettings.json Bin/Server/Release/netcoreapp1.0/
 	
 echo "Done"
