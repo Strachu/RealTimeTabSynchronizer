@@ -2,6 +2,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using RealTimeTabSynchronizer.Server.Browsers;
 
 namespace RealTimeTabSynchronizer.Server.Tabs.Browsers
 {
@@ -12,6 +13,12 @@ namespace RealTimeTabSynchronizer.Server.Tabs.Browsers
 			builder.HasKey(x => x.Id);
 
 			builder.HasIndex(x => new { x.BrowserId, x.BrowserTabId }).IsUnique();
+
+			builder.HasOne<Browser>()
+				.WithMany()
+				.HasForeignKey(x => x.BrowserId)
+				.OnDelete(DeleteBehavior.Cascade);
+
 			builder.HasOne(x => x.ServerTab)
 				.WithMany()
 				.HasForeignKey(x => x.ServerTabId)
