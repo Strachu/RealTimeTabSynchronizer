@@ -2,6 +2,7 @@ function SynchronizerServer(browserId) {
     var disconnectTimeoutHandle;
     var hub = $.connection.synchronizerHub;
     var currentServerUrl = "http://localhost:31711/";
+    var initialized = false;
     var that = this;
 
     this.connect = function() {
@@ -21,6 +22,10 @@ function SynchronizerServer(browserId) {
                 var allTabsPromise = tabManager.getAllTabsWithUrls();
                 var allChangesPromise = changeTracker.getAllChanges();
 
+                // TODO There is a small probability of some events being generated between getAllChanges
+                // and setting initialized to true. These events will be lost, to prevent it they should
+                // be saved to a queue and replayed after successful synchronization.
+
                 return Promise.all([allTabsPromise, allChangesPromise])
                     .then(function(results) {
                         var allTabs = results[0];
@@ -28,7 +33,8 @@ function SynchronizerServer(browserId) {
 
                         return hub.server.synchronize(browserId, allChanges, allTabs)
                             .done(function() {
-                                // TODO Is there possibility of something lost if something was added between connect and done?
+                                initialized = true;
+
                                 return changeTracker.clear();
                             })
                             .fail(function(error) {
@@ -44,6 +50,7 @@ function SynchronizerServer(browserId) {
     }
 
     $.connection.hub.disconnected(function() {
+        initialized = false;
         disconnectTimeoutHandle = setTimeout(that.connect, 10000);
     });
 
@@ -52,6 +59,7 @@ function SynchronizerServer(browserId) {
             currentServerUrl = trimTrailingSlashes(newServerUrl);
 
             $.connection.hub.stop();
+            initialized = false;
             return this.connect();
         }
     };
@@ -61,7 +69,7 @@ function SynchronizerServer(browserId) {
     }
 
     this.addTab = function(tabId, index, url, createInBackground) {
-        if ($.connection.hub.state !== $.signalR.connectionState.disconnected) {
+        if (canTalkWithServer()) {
             hub.server.addTab(browserId, tabId, index, url, createInBackground);
         } else {
             changeTracker.addTab(index, url, createInBackground);
@@ -69,7 +77,7 @@ function SynchronizerServer(browserId) {
     }
 
     this.changeTabUrl = function(tabId, url) {
-        if ($.connection.hub.state !== $.signalR.connectionState.disconnected) {
+        if (canTalkWithServer()) {
             hub.server.changeTabUrl(browserId, tabId, url);
         } else {
             tabManager.getTabIndexByTabId(tabId).then(function(tabIndex) {
@@ -79,7 +87,7 @@ function SynchronizerServer(browserId) {
     }
 
     this.closeTab = function(tabId) {
-        if ($.connection.hub.state !== $.signalR.connectionState.disconnected) {
+        if (canTalkWithServer()) {
             hub.server.closeTab(browserId, tabId);
         } else {
             tabManager.getTabIndexByTabId(tabId).then(function(tabIndex) {
@@ -89,13 +97,17 @@ function SynchronizerServer(browserId) {
     }
 
     this.activateTab = function(tabId) {
-        if ($.connection.hub.state !== $.signalR.connectionState.disconnected) {
+        if (canTalkWithServer()) {
             hub.server.activateTab(browserId, tabId);
         } else {
             tabManager.getTabIndexByTabId(tabId).then(function(tabIndex) {
                 changeTracker.activateTab(tabIndex);
             });
         }
+    }
+
+    var canTalkWithServer = function() {
+        return ($.connection.hub.state !== $.signalR.connectionState.disconnected && initialized);
     }
 
     hub.client.addTab = function(requestId, tabIndex, url, createInBackground) {
