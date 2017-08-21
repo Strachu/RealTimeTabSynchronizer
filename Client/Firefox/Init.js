@@ -3,6 +3,8 @@ var synchronizerServer;
 var tabManager;
 
 browser.runtime.onInstalled.addListener(function(details) {
+    // Initialized here instead during retrieval if not exists because we want to regenerate
+    // the UUID after the user uninstalls and reinstalls the addon.
     if (details.reason === "install") {
         clientId = generateUUID();
 
@@ -23,16 +25,15 @@ function startAddon() {
             var clientId = config[clientIdStorageKey];
             if (clientId) {
                 synchronizerServer = new SynchronizerServer(clientId);
+
+                return browser.storage.local.get("server_url").then(function(config) {
+                    if (config.hasOwnProperty("server_url")) {
+                        synchronizerServer.changeServerUrl(config.server_url);
+                    } else {
+                        browser.runtime.openOptionsPage();
+                    }
+                });
             }
-        })
-        .then(function() {
-            return browser.storage.local.get("server_url").then(function(config) {
-                if (config.hasOwnProperty("server_url")) {
-                    synchronizerServer.changeServerUrl(config.server_url);
-                } else {
-                    browser.runtime.openOptionsPage();
-                }
-            });
         })
 }
 
