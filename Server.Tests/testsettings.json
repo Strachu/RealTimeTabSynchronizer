@@ -1,0 +1,15 @@
+{
+    "Databases": {
+        //"Postgresql": {
+        //    "ConnectionString": "Host=...;Database=realtimetabsynchronizer.tests;Username=...;Password=..."
+        //}
+        //,
+        "Sqlite": {
+            "ConnectionString": "Data Source=realtimetabsynchronizer.tests.db"
+        }
+        //	,
+        //  "Mysql": {
+        //      "ConnectionString": "..."
+        //  }
+    }
+}
