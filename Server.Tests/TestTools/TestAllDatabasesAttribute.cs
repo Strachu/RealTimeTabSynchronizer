@@ -7,7 +7,7 @@ namespace RealTimeTabSynchronizer.Server.Tests.TestTools
 	public class TestFixtureForAllDatabasesAttribute : TestFixtureSourceAttribute
 	{
 		public TestFixtureForAllDatabasesAttribute()
-			: base(typeof(DbContextProvider), nameof(DbContextProvider.GetForAllSupportedDatabases))
+			: base(typeof(DbContextFactoryProvider), nameof(DbContextFactoryProvider.GetForAllSupportedDatabases))
 		{
 		}
 	}

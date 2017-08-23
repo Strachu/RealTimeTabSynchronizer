@@ -10,18 +10,18 @@ using RealTimeTabSynchronizer.Server.EntityFramework;
 
 namespace RealTimeTabSynchronizer.Server.Tests.TestTools
 {
-	public class DbContextProvider
+	public class DbContextFactoryProvider
 	{
 		private static IDictionary<DatabaseProvider, string> mConnectionStringByDatabaseProvider;
 		private static ISet<DatabaseProvider> mInitializedDatabases = new HashSet<DatabaseProvider>();
 		private static object mDatabaseInitializationLock = new object();
 
-		static DbContextProvider()
+		static DbContextFactoryProvider()
 		{
 			ParseDatabasesConfiguration();
 		}
 
-		public static IEnumerable<TabSynchronizerDbContext> GetForAllSupportedDatabases()
+		public static IEnumerable<DbContextFactory> GetForAllSupportedDatabases()
 		{
 			// TODO Change the new ServiceCollection() to use real configured container
 			var modelBuildingService = new ModelBuildingService(new ServiceCollection().BuildServiceProvider());
@@ -42,11 +42,11 @@ namespace RealTimeTabSynchronizer.Server.Tests.TestTools
 				var optionsBuilder = new DbContextOptionsBuilder<TabSynchronizerDbContext>();
 				efConfigurer.Configure(optionsBuilder);
 
-				var dbContext = new TabSynchronizerDbContext(optionsBuilder.Options, modelBuildingService);
+				var dbContextFactory = new DbContextFactory(optionsBuilder.Options, modelBuildingService);
 
-				EnsureTestDatabaseUpdated(databaseProvider, dbContext);
+				EnsureTestDatabaseUpdated(databaseProvider, dbContextFactory);
 
-				yield return dbContext;
+				yield return dbContextFactory;
 			}
 		}
 
@@ -69,17 +69,20 @@ namespace RealTimeTabSynchronizer.Server.Tests.TestTools
 				.ToDictionary(x => x.DatabaseProvider, x => x.Configuration.GetValue<string>("ConnectionString"));
 		}
 
-		private static void EnsureTestDatabaseUpdated(DatabaseProvider currentProvider, DbContext context)
+		private static void EnsureTestDatabaseUpdated(DatabaseProvider currentProvider, DbContextFactory contextFactory)
 		{
 			lock (mDatabaseInitializationLock)
 			{
 				if (!mInitializedDatabases.Contains(currentProvider))
 				{
-					context.Database.EnsureDeleted();
-					context.Database.EnsureCreated();
-					context.SaveChanges();
+					using (var context = contextFactory.Create())
+					{
+						context.Database.EnsureDeleted();
+						context.Database.EnsureCreated();
+						context.SaveChanges();
 
-					mInitializedDatabases.Add(currentProvider);
+						mInitializedDatabases.Add(currentProvider);
+					}
 				}
 			}
 		}
