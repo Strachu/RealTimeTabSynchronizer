@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -42,6 +43,12 @@ namespace RealTimeTabSynchronizer.Server
 			mEnvironment = env;
 		}
 
+		public Startup(IHostingEnvironment env, IConfigurationRoot configuration)
+		{
+			mEnvironment = env;
+			Configuration = configuration;
+		}
+
 		public IConfigurationRoot Configuration { get; }
 
 		public void ConfigureServices(IServiceCollection services)
@@ -69,7 +76,7 @@ namespace RealTimeTabSynchronizer.Server
 			services.AddSingleton<ITabActionDeserializer, JsonTabActionDeserializer>();
 
 			services.AddSingleton<Configurator>();
-			services.AddSingleton<IModelBuildingService, ModelBuildingService>();
+			services.AddSingleton<IModelBuildingService>(x => new ModelBuildingService(x, typeof(Startup).GetTypeInfo().Assembly));
 			services.AddDbContext<TabSynchronizerDbContext>((provider, opts) => provider.GetRequiredService<Configurator>().Configure(opts));
 		}
 

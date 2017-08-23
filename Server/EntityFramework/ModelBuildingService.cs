@@ -9,16 +9,17 @@ namespace RealTimeTabSynchronizer.Server.EntityFramework
 	public class ModelBuildingService : IModelBuildingService
 	{
 		private readonly IServiceProvider mServiceProvider;
+		private readonly Assembly mAssemblyToGetConfigurationFrom;
 
-		public ModelBuildingService(IServiceProvider serviceProvider)
+		public ModelBuildingService(IServiceProvider serviceProvider, Assembly assemblyToGetConfigurationFrom)
 		{
 			mServiceProvider = serviceProvider;
+			mAssemblyToGetConfigurationFrom = assemblyToGetConfigurationFrom;
 		}
 
 		public void ConfigureEntitiesMapping(ModelBuilder modelBuilder)
 		{
-			var assembly = Assembly.GetEntryAssembly();
-			var configurations = assembly.GetTypes()
+			var configurations = mAssemblyToGetConfigurationFrom.GetTypes()
 				.Select(x => x.GetTypeInfo())
 				.Where(x => x.BaseType != null && x.BaseType.GetTypeInfo().IsGenericType)
 				.Where(x => x.BaseType.GetTypeInfo().GetGenericTypeDefinition() == typeof(EntityTypeConfiguration<>))

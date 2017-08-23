@@ -5,6 +5,5 @@ namespace RealTimeTabSynchronizer.Server.DiffCalculation
 	public interface ITabActionDeserializer
 	{
 		TabAction Deserialize(object singleChange);
-
 	}
 }

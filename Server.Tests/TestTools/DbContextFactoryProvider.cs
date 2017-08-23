@@ -2,10 +2,12 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Moq;
 using RealTimeTabSynchronizer.Server.EntityFramework;
 
 namespace RealTimeTabSynchronizer.Server.Tests.TestTools
@@ -23,8 +25,12 @@ namespace RealTimeTabSynchronizer.Server.Tests.TestTools
 
 		public static IEnumerable<DbContextFactory> GetForAllSupportedDatabases()
 		{
-			// TODO Change the new ServiceCollection() to use real configured container
-			var modelBuildingService = new ModelBuildingService(new ServiceCollection().BuildServiceProvider());
+			var container = new ServiceCollection();
+			var configurationMock = new Mock<IConfigurationRoot>();
+			configurationMock.Setup(x => x.GetSection(It.IsAny<string>())).Returns(new Mock<IConfigurationSection>().Object);
+			new Startup(new Mock<IHostingEnvironment>().Object, configurationMock.Object).ConfigureServices(container);
+
+			var modelBuildingService = container.BuildServiceProvider().GetRequiredService<IModelBuildingService>();
 
 			foreach (DatabaseProvider databaseProvider in Enum.GetValues(typeof(DatabaseProvider)))
 			{

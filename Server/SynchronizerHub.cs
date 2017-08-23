@@ -370,32 +370,19 @@ namespace RealTimeTabSynchronizer.Server
 						// TODO Apply changes from server
 
 						// TODO Extract into TabActionToHubMethodsDispatcher if it will work nicely with conflicts
-						var newIdsByIndex = currentlyOpenTabs.ToDictionary(x => x.Index, x => x.Id); // TODO Its done second time
+						var newIdsByIndex = currentlyOpenTabs.ToDictionary(x => x.Index.Value, x => x.Id); // TODO Its done second time
 						foreach (var change in browserChanges)
 						{
-							var changesAfterThisOne = browserChanges.SkipWhile(x => x != change).Skip(1);
-							var newIndex = GetTabIndexAfterChanges(change.TabIndex, changesAfterThisOne);
-							int tabId;
-							if (newIndex == null)
+							var tabId = GetTabIdOfChangedTab(change, browserChanges, browserStateOnLastUpdate, newIdsByIndex);
+							if (tabId == null)
 							{
-								var previousIndex = GetTabIndexBeforeChanges(change.TabIndex, browserChanges.TakeWhile(x => x != change));
-								if (previousIndex == null)
-								{
-									// Could be added and removed before update -> TODO should be optimized out
-									continue;
-								}
-
-								tabId = browserStateOnLastUpdate.Single(x => x.ServerTab.Index == previousIndex).BrowserTabId;
-							}
-							else
-							{
-								tabId = newIdsByIndex[newIndex];
+								continue;
 							}
 
 							switch (change)
 							{
 								case TabCreatedDto dto:
-									var serverTab = await mTabService.AddTab(browserId, tabId, dto.TabIndex, dto.Url, dto.CreateInBackground);
+									var serverTab = await mTabService.AddTab(browserId, tabId.Value, dto.TabIndex, dto.Url, dto.CreateInBackground);
 
 									// Again... EF is annoying with it's ids... switch over to guids?
 									await mUoW.SaveChangesAsync(); // Retrieve automatically assigned ids from database
@@ -413,7 +400,7 @@ namespace RealTimeTabSynchronizer.Server
 									break;
 
 								case TabUrlChangedDto dto:
-									var changedServerTab = await mTabService.ChangeTabUrl(browserId, tabId, dto.NewUrl);
+									var changedServerTab = await mTabService.ChangeTabUrl(browserId, tabId.Value, dto.NewUrl);
 									if (changedServerTab != null)
 									{
 										await ForEveryOtherConnectedBrowserWithTab(browserId, changedServerTab.Id,
@@ -426,7 +413,7 @@ namespace RealTimeTabSynchronizer.Server
 									break;
 
 								case TabMovedDto dto:
-									var movedServerTab = await mTabService.MoveTab(browserId, tabId, dto.NewIndex);
+									var movedServerTab = await mTabService.MoveTab(browserId, tabId.Value, dto.NewIndex);
 
 									await ForEveryOtherConnectedBrowserWithTab(browserId, movedServerTab.Id,
 										async (browserTabId, connectionInfo) =>
@@ -437,7 +424,7 @@ namespace RealTimeTabSynchronizer.Server
 									break;
 
 								case TabClosedDto dto:
-									var closedServerTab = await mTabService.CloseTab(browserId, tabId);
+									var closedServerTab = await mTabService.CloseTab(browserId, tabId.Value);
 									if (closedServerTab != null)
 									{
 										await ForEveryOtherConnectedBrowserWithTab(browserId, closedServerTab.Id,
@@ -469,7 +456,7 @@ namespace RealTimeTabSynchronizer.Server
 		private void UpdateBrowserTabIdMapping(
 			IReadOnlyCollection<BrowserTab> browserTabsOnServer,
 			IReadOnlyCollection<TabData> browserTabsOnBrowser,
-			IReadOnlyCollection<TabAction> actionDoneSinceLastServerUpdate)
+			IReadOnlyCollection<TabAction> actionsDoneSinceLastServerUpdate)
 		{
 			var newTabsByIndex = browserTabsOnBrowser.ToDictionary(x => x.Index);
 
@@ -478,7 +465,7 @@ namespace RealTimeTabSynchronizer.Server
 				// TODO We need to also maintain tab index for client as tab index could be changed
 				// server side.
 				var oldIndex = tabOnServer.ServerTab.Index.Value;
-				var newIndex = GetTabIndexAfterChanges(oldIndex, actionDoneSinceLastServerUpdate);
+				var newIndex = GetTabIndexAfterChanges(oldIndex, actionsDoneSinceLastServerUpdate);
 				if (newIndex == null)
 				{
 					// Will be removed in the next step but id needs to be unique.
@@ -489,6 +476,42 @@ namespace RealTimeTabSynchronizer.Server
 					tabOnServer.BrowserTabId = newTabsByIndex[newIndex].Id;
 				}
 			}
+		}
+
+		private int? GetTabIdOfChangedTab(
+			TabAction change,
+			IReadOnlyCollection<TabAction> allChanges,
+			IReadOnlyCollection<BrowserTab> browserStateOnLastUpdate,
+			IDictionary<int, int> newIdsByIndex)
+		{
+			// TODO Unit test for TabClosedDto - crashed before
+			if (!(change is TabClosedDto))
+			{
+				var tabMovedChange = change as TabMovedDto;
+				var currentIndex = (tabMovedChange == null) ? change.TabIndex : tabMovedChange.NewIndex;
+
+				var changesAfterThisOne = allChanges.SkipWhile(x => x != change).Skip(1);
+				var newIndex = GetTabIndexAfterChanges(currentIndex, changesAfterThisOne);
+				if (newIndex != null)
+				{
+					return newIdsByIndex[newIndex.Value];
+				}
+			}
+
+			// TODO Unit test for it - crashed before
+			if (change is TabCreatedDto)
+			{
+				return null;
+			}
+
+			var previousIndex = GetTabIndexBeforeChanges(change.TabIndex, allChanges.TakeWhile(x => x != change));
+			if (previousIndex == null)
+			{
+				// Could be added and removed before update -> TODO should be optimized out
+				return null;
+			}
+
+			return browserStateOnLastUpdate.Single(x => x.ServerTab.Index == previousIndex).BrowserTabId;
 		}
 
 		private int? GetTabIndexAfterChanges(int currentIndex, IEnumerable<TabAction> changes)
@@ -527,7 +550,7 @@ namespace RealTimeTabSynchronizer.Server
 						{
 							newIndex++;
 						}
-						else if (dto.TabIndex < newIndex && dto.NewIndex > newIndex)
+						else if (dto.TabIndex < newIndex && dto.NewIndex >= newIndex)
 						{
 							newIndex--;
 						}
