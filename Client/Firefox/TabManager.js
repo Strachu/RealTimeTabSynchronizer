@@ -15,7 +15,7 @@ function TabManager() {
     var createTabResultPendingCount = 0;
     var invokeOrInterceptHandler = function(handler) {
         if (createTabResultPendingCount == 0) {
-            handler();
+            return handler();
         } else {
             capturedEventHandlers.push(handler);
         }
@@ -54,6 +54,7 @@ function TabManager() {
     var onTabCreated = function(tab) {
         tabsCreatedBySynchronizer[tab.id] = true;
 
+        // TODO Should we await promises?
         invokeAllCapturedHandlers();
 
         return { tabId: tab.id, index: tab.index };
@@ -71,19 +72,19 @@ function TabManager() {
 
     this.moveTab = function(tabId, index) {
         // TODO The browser can refuse to move the tab, needs to do something with it?
-        browser.tabs.move(tabId, { index: tabId });
+        return browser.tabs.move(tabId, { index: tabId });
     };
 
     this.changeTabUrl = function(tabId, newUrl) {
-        browser.tabs.update(tabId, { url: newUrl });
+        return browser.tabs.update(tabId, { url: newUrl });
     };
 
     this.closeTab = function(tabId) {
-        browser.tabs.remove(tabId);
+        return browser.tabs.remove(tabId);
     };
 
     this.activateTab = function(tabId) {
-        browser.tabs.update(tabId, { active: true })
+        return browser.tabs.update(tabId, { active: true })
     };
 
     this.getAllTabsWithUrls = function() {
@@ -97,12 +98,12 @@ function TabManager() {
     }
 
     function onTabCreated(createdTab) {
-        invokeOrInterceptHandler(function() {
+        return invokeOrInterceptHandler(function() {
             console.log("OnCreated:");
             console.log(createdTab);
 
             if (!tabsCreatedBySynchronizer.hasOwnProperty(createdTab.id)) {
-                synchronizerServer.addTab(
+                return synchronizerServer.addTab(
                     createdTab.id,
                     createdTab.index,
                     createdTab.url, !createdTab.active);
@@ -111,23 +112,22 @@ function TabManager() {
     }
 
     function onTabRemoved(tabId) {
-        invokeOrInterceptHandler(function() {
-            console.log("OnRemoved:");
-            console.log("TabId: " + tabId);
+        return invokeOrInterceptHandler(function() {
+            console.log("OnRemoved tabId: " + tabId);
 
-            synchronizerServer.closeTab(tabId);
+            return synchronizerServer.closeTab(tabId);
         });
     }
 
     function onTabUpdated(tabId, changeInfo, tabInfo) {
-        invokeOrInterceptHandler(function() {
-            console.log("OnUpdated:");
-            console.log("TabId: " + tabId);
+        return invokeOrInterceptHandler(function() {
+            console.log("OnUpdated tabId " + tabId);
             console.log("Changed attributes: ");
             console.log(changeInfo);
+            console.log(tabInfo);
 
             if (changeInfo.url) {
-                synchronizerServer.changeTabUrl(tabId, changeInfo.url);
+                return synchronizerServer.changeTabUrl(tabId, changeInfo.url);
             }
         });
     }
@@ -143,11 +143,10 @@ function TabManager() {
     }
 
     function onTabActivated(activeInfo) {
-        invokeOrInterceptHandler(function() {
-            console.log("OnActivated:");
-            console.log("TabId: " + activeInfo.tabId);
+        return invokeOrInterceptHandler(function() {
+            console.log("OnActivated tabId: " + activeInfo.tabId);
 
-            synchronizerServer.activateTab(activeInfo.tabId);
+            return synchronizerServer.activateTab(activeInfo.tabId);
         });
     }
 };

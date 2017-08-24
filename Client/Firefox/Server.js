@@ -70,18 +70,18 @@ function SynchronizerServer(browserId) {
 
     this.addTab = function(tabId, index, url, createInBackground) {
         if (canTalkWithServer()) {
-            hub.server.addTab(browserId, tabId, index, url, createInBackground);
+            return hub.server.addTab(browserId, tabId, index, url, createInBackground);
         } else {
-            changeTracker.addTab(index, url, createInBackground);
+            return changeTracker.addTab(index, url, createInBackground);
         }
     }
 
     this.changeTabUrl = function(tabId, url) {
         if (canTalkWithServer()) {
-            hub.server.changeTabUrl(browserId, tabId, url);
+            return hub.server.changeTabUrl(browserId, tabId, url);
         } else {
-            tabManager.getTabIndexByTabId(tabId).then(function(tabIndex) {
-                changeTracker.changeTabUrl(tabIndex, url);
+            return tabManager.getTabIndexByTabId(tabId).then(function(tabIndex) {
+                return changeTracker.changeTabUrl(tabIndex, url);
             });
         }
     }
@@ -96,21 +96,19 @@ function SynchronizerServer(browserId) {
 
     this.closeTab = function(tabId) {
         if (canTalkWithServer()) {
-            hub.server.closeTab(browserId, tabId);
+            return hub.server.closeTab(browserId, tabId);
         } else {
-            tabManager.getTabIndexByTabId(tabId).then(function(tabIndex) {
-                changeTracker.closeTab(tabIndex);
-            });
+            return tabManager.getTabIndexByTabId(tabId)
+                .then(changeTracker.closeTab);
         }
     }
 
     this.activateTab = function(tabId) {
         if (canTalkWithServer()) {
-            hub.server.activateTab(browserId, tabId);
+            return hub.server.activateTab(browserId, tabId);
         } else {
-            tabManager.getTabIndexByTabId(tabId).then(function(tabIndex) {
-                changeTracker.activateTab(tabIndex);
-            });
+            return tabManager.getTabIndexByTabId(tabId)
+                .then(changeTracker.activateTab);
         }
     }
 
@@ -121,33 +119,33 @@ function SynchronizerServer(browserId) {
     hub.client.addTab = function(requestId, tabIndex, url, createInBackground) {
         console.log("addTab(" + tabIndex + ", " + url + ", " + createInBackground);
 
-        tabManager.addTab(tabIndex, url, createInBackground).then(function(tabInfo) {
+        return tabManager.addTab(tabIndex, url, createInBackground).then(function(tabInfo) {
             // TODO What if we lose connection here?
-            hub.server.acknowledgeTabAdded(requestId, tabInfo.tabId, tabInfo.index);
+            return hub.server.acknowledgeTabAdded(requestId, tabInfo.tabId, tabInfo.index);
         });
     };
 
     hub.client.moveTab = function(tabId, oldIndex, newIndex) {
         console.log("moveTab(" + tabId + ", " + oldIndex + ", " + newIndex + ")");
 
-        tabManager.moveTab(tabId, oldIndex, newIndex);
+        return tabManager.moveTab(tabId, oldIndex, newIndex);
     };
 
     hub.client.closeTab = function(tabId) {
         console.log("closeTab(" + tabId + ")");
 
-        tabManager.closeTab(tabId);
+        return tabManager.closeTab(tabId);
     };
 
     hub.client.changeTabUrl = function(tabId, newUrl) {
         console.log("changeTabUrl(" + tabId + ", " + newUrl + ")");
 
-        tabManager.changeTabUrl(tabId, newUrl);
+        return tabManager.changeTabUrl(tabId, newUrl);
     };
 
     hub.client.activateTab = function(tabId) {
         console.log("activateTab(" + tabId + ")");
 
-        tabManager.activateTab(tabId, newUrl);
+        return tabManager.activateTab(tabId, newUrl);
     };
 };

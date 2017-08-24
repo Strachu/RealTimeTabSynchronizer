@@ -1,8 +1,13 @@
 var changeTracker = {
     storageKey: "changeTracker_StorageKey",
 
+    // Used to queue the calls to storage.get(), without queing it was happening that 2 events
+    // invoked storage.get() before first finished thus operating on the same array resulting in
+    // loss of first event.
+    _pushChangeQueuePromise: Promise.resolve(),
+
     addTab: function(tabIndex, url, createInBackground) {
-        changeTracker._pushChange({
+        return changeTracker._pushChange({
             type: "createTab",
             dateTime: new Date(),
             index: tabIndex,
@@ -12,7 +17,7 @@ var changeTracker = {
     },
 
     moveTab: function(tabIndex, newIndex) {
-        changeTracker._pushChange({
+        return changeTracker._pushChange({
             type: "moveTab",
             dateTime: new Date(),
             index: tabIndex,
@@ -21,7 +26,7 @@ var changeTracker = {
     },
 
     closeTab: function(tabIndex) {
-        changeTracker._pushChange({
+        return changeTracker._pushChange({
             type: "closeTab",
             dateTime: new Date(),
             index: tabIndex
@@ -29,7 +34,7 @@ var changeTracker = {
     },
 
     changeTabUrl: function(tabIndex, newUrl) {
-        changeTracker._pushChange({
+        return changeTracker._pushChange({
             type: "changeTabUrl",
             dateTime: new Date(),
             index: tabIndex,
@@ -60,18 +65,22 @@ var changeTracker = {
     },
 
     _pushChange: function(change) {
-        return new Promise(function(resolve) {
-            browser.storage.local.get(changeTracker.storageKey).then(function(storage) {
-                if (!storage[changeTracker.storageKey]) {
-                    storage[changeTracker.storageKey] = [];
-                }
+        changeTracker._pushChangeQueuePromise = changeTracker._pushChangeQueuePromise.then(function() {
+            return new Promise(function(resolve) {
+                browser.storage.local.get(changeTracker.storageKey).then(function(storage) {
+                    if (!storage[changeTracker.storageKey]) {
+                        storage[changeTracker.storageKey] = [];
+                    }
 
-                storage[changeTracker.storageKey].push(change);
+                    storage[changeTracker.storageKey].push(change);
 
-                browser.storage.local.set({
-                    [changeTracker.storageKey]: storage[changeTracker.storageKey]
-                }).then(resolve());
-            })
-        });
+                    browser.storage.local.set({
+                        [changeTracker.storageKey]: storage[changeTracker.storageKey]
+                    }).then(resolve);
+                })
+            });
+        })
+
+        return changeTracker._pushChangeQueuePromise;
     }
 };
