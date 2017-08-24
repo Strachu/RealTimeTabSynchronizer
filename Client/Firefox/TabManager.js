@@ -133,13 +133,12 @@ function TabManager() {
     }
 
     function onTabMoved(tabId, moveInfo) {
-        invokeOrInterceptHandler(function() {
-            console.log("onMoved:");
-            console.log("{");
-            console.log("TabId: " + tabId);
+        return invokeOrInterceptHandler(function() {
+            console.log("onMoved tabId " + tabId);
             console.log("Move Info: ");
             console.log(moveInfo);
-            console.log("}")
+
+            return synchronizerServer.moveTab(tabId, moveInfo.fromIndex, moveInfo.toIndex);
         });
     }
 

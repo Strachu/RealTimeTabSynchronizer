@@ -86,6 +86,14 @@ function SynchronizerServer(browserId) {
         }
     }
 
+    this.moveTab = function(tabId, fromIndex, newIndex) {
+        if (canTalkWithServer()) {
+            return hub.server.moveTab(browserId, tabId, newIndex);
+        } else {
+            return changeTracker.moveTab(fromIndex, newIndex);
+        }
+    }
+
     this.closeTab = function(tabId) {
         if (canTalkWithServer()) {
             hub.server.closeTab(browserId, tabId);
