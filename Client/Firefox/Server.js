@@ -76,13 +76,11 @@ function SynchronizerServer(browserId) {
         }
     }
 
-    this.changeTabUrl = function(tabId, url) {
+    this.changeTabUrl = function(tabId, tabIndex, url) {
         if (canTalkWithServer()) {
             return hub.server.changeTabUrl(browserId, tabId, url);
         } else {
-            return tabManager.getTabIndexByTabId(tabId).then(function(tabIndex) {
-                return changeTracker.changeTabUrl(tabIndex, url);
-            });
+            return changeTracker.changeTabUrl(tabIndex, url);
         }
     }
 

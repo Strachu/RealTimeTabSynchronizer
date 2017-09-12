@@ -136,7 +136,7 @@ function TabManager() {
             // When opening a tab with "Open Link in new tab" a update event with about:blank url
             // is triggered before onCreated - it is useless as update with correct url comes later.
             if (changeInfo.url && tabsWithOnCreatedCalled.hasOwnProperty(tabId)) {
-                return synchronizerServer.changeTabUrl(tabId, changeInfo.url);
+                return synchronizerServer.changeTabUrl(tabId, tabInfo.index, changeInfo.url);
             }
         });
     }
