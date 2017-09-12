@@ -151,7 +151,7 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 						dateTime: ""2017-01-01 10:06:00"",
 						index: 0,			
 						newIndex: 2,	
-					"),
+					}"),
 					JObject.Parse(@"{
 						type: ""changeTabUrl"",
 						dateTime: ""2017-01-01 10:06:30"",
