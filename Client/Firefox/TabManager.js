@@ -72,7 +72,7 @@ function TabManager() {
 
     this.moveTab = function(tabId, index) {
         // TODO The browser can refuse to move the tab, needs to do something with it?
-        return browser.tabs.move(tabId, { index: tabId });
+        return browser.tabs.move(tabId, { index: index });
     };
 
     this.changeTabUrl = function(tabId, newUrl) {
