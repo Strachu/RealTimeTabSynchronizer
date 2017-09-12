@@ -6,6 +6,11 @@ function TabManager() {
     browser.tabs.onUpdated.addListener(onTabUpdated);
     browser.tabs.onMoved.addListener(onTabMoved);
 
+    // Used to queue the event handlers, without queing the event handlers can finish out of order
+    // when different type of event handlers uses different amount of async calls.
+    var handlerQueuePromise = Promise.resolve();
+    var tabsWithOnCreatedCalled = {};
+
     // Temporary variables to prevent invoking server.addTab() for tabs created by addon.
     // capturedEventHandlers and createTabResultPendingCount are strictly needed only on
     // Android due to onCreated event firing first but is nonetheless left also on desktop
@@ -15,7 +20,7 @@ function TabManager() {
     var createTabResultPendingCount = 0;
     var invokeOrInterceptHandler = function(handler) {
         if (createTabResultPendingCount == 0) {
-            return handler();
+            return handlerQueuePromise = handlerQueuePromise.then(handler, handler);
         } else {
             capturedEventHandlers.push(handler);
         }
@@ -102,6 +107,8 @@ function TabManager() {
             console.log("OnCreated:");
             console.log(createdTab);
 
+            tabsWithOnCreatedCalled[createdTab.id] = true;
+
             if (!tabsCreatedBySynchronizer.hasOwnProperty(createdTab.id)) {
                 return synchronizerServer.addTab(
                     createdTab.id,
@@ -126,7 +133,9 @@ function TabManager() {
             console.log(changeInfo);
             console.log(tabInfo);
 
-            if (changeInfo.url) {
+            // When opening a tab with "Open Link in new tab" a update event with about:blank url
+            // is triggered before onCreated - it is useless as update with correct url comes later.
+            if (changeInfo.url && tabsWithOnCreatedCalled.hasOwnProperty(tabId)) {
                 return synchronizerServer.changeTabUrl(tabId, changeInfo.url);
             }
         });
