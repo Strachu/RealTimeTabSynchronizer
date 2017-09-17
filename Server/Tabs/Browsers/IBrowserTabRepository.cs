@@ -12,7 +12,6 @@ namespace RealTimeTabSynchronizer.Server.Tabs.Browsers
 		Task<BrowserTab> GetByBrowserTabId(Guid browserId, int tabId);
 		void Remove(BrowserTab tab);
 
-		// TODO Will this be needed??
-		// Task IncrementTabIndices(Guid browserId, TabRange range, int incrementBy);
+		Task IncrementTabIndices(Guid browserId, TabRange range, int incrementBy);
 	}
 }

@@ -74,6 +74,7 @@ namespace RealTimeTabSynchronizer.Server
 			services.AddScoped<IPendingRequestService, PendingRequestService>();
 			services.AddScoped<IBrowserService, BrowserService>();
 			services.AddSingleton<ITabActionDeserializer, JsonTabActionDeserializer>();
+			services.AddSingleton<IIndexCalculator, IndexCalculator>();
 
 			services.AddSingleton<Configurator>();
 			services.AddSingleton<IModelBuildingService>(x => new ModelBuildingService(x, typeof(Startup).GetTypeInfo().Assembly));

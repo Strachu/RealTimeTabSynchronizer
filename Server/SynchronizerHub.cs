@@ -1,5 +1,8 @@
 using System;
+using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -32,6 +35,7 @@ namespace RealTimeTabSynchronizer.Server
 		private readonly IBrowserService mBrowserService;
 		private readonly IPendingRequestService mPendingRequestService;
 		private readonly ITabActionDeserializer mTabActionDeserializer;
+		private readonly IIndexCalculator mIndexCalculator;
 
 		public SynchronizerHub(
 			ILogger<SynchronizerHub> logger,
@@ -44,7 +48,8 @@ namespace RealTimeTabSynchronizer.Server
 			IBrowserTabRepository browserTabRepository,
 			IBrowserService browserService,
 			IPendingRequestService pendingRequestService,
-			ITabActionDeserializer tabActionDeserializer)
+			ITabActionDeserializer tabActionDeserializer, 
+			IIndexCalculator indexCalculator)
 		{
 			mLogger = logger;
 			mUoW = dbContext;
@@ -57,6 +62,7 @@ namespace RealTimeTabSynchronizer.Server
 			mBrowserService = browserService;
 			mPendingRequestService = pendingRequestService;
 			mTabActionDeserializer = tabActionDeserializer;
+			mIndexCalculator = indexCalculator;
 		}
 
 		public async Task AddTab(Guid browserId, int tabId, int index, string url, bool createInBackground)
@@ -100,27 +106,38 @@ namespace RealTimeTabSynchronizer.Server
 		{
 			mLogger.LogInformation($"Got an acknowledge for tab adding request {requestId}.");
 
-			// TODO Synchronize is not fully transaction as browser does not take part in transaction.
+			// TODO Synchronize is not fully transactional as browser does not take part in transaction.
 			// Needs to split synchronize into smaller transactions so that AcknowledgeTabAdded does not arrive
 			// before request adding finishes, use lock shared only with synchronize or store the commands to
 			// sent to browser in a collection first and issue them only after transaction is committed.
 			await @lock.WaitAsync();
 			try
 			{
-				var requestData = await mPendingRequestService.GetRequestDataByPendingRequestId<AddTabRequestData>(requestId);
 
-				// TODO Do we need to take into account the case in which the server tab's url and url passed
-				// to addTab mismatched?
-				mBrowserTabRepository.Add(new BrowserTab()
+				using (var transaction = await mUoW.Database.BeginTransactionAsync())
 				{
-					BrowserId = requestData.BrowserId,
-					BrowserTabId = tabId,
-					ServerTabId = requestData.ServerTabId
-				});
+					var requestData = await mPendingRequestService.GetRequestDataByPendingRequestId<AddTabRequestData>(requestId);
 
-				mPendingRequestService.SetRequestFulfilled(requestId);
+					await mBrowserTabRepository.IncrementTabIndices(
+						requestData.BrowserId,
+						new TabRange(fromIndexInclusive: index),
+						incrementBy: 1);
 
-				await mUoW.SaveChangesAsync();
+					// TODO Do we need to take into account the case in which the server tab's url and url passed
+					// to addTab mismatched?
+					mBrowserTabRepository.Add(new BrowserTab()
+					{
+						BrowserId = requestData.BrowserId,
+						BrowserTabId = tabId,
+						Index = index,
+						ServerTabId = requestData.ServerTabId
+					});
+
+					mPendingRequestService.SetRequestFulfilled(requestId);
+
+					await mUoW.SaveChangesAsync();
+					transaction.Commit();
+				}
 			}
 			finally
 			{
@@ -144,7 +161,6 @@ namespace RealTimeTabSynchronizer.Server
 					await ForEveryOtherConnectedBrowserWithTab(browserId, movedServerTab.Id,
 						async (browserTabId, connectionInfo) =>
 						{
-							// TODO When to update client side tab list? Now or after receiving ack?
 							await Clients.Client(connectionInfo.ConnectionId).MoveTab(browserTabId, newIndex);
 						});
 
@@ -175,7 +191,6 @@ namespace RealTimeTabSynchronizer.Server
 						await ForEveryOtherConnectedBrowserWithTab(browserId, closedServerTab.Id,
 							async (browserTabId, connectionInfo) =>
 							{
-								// TODO When to update client side tab list? Now or after receiving ack?
 								await Clients.Client(connectionInfo.ConnectionId).CloseTab(browserTabId);
 							});
 					}
@@ -207,7 +222,6 @@ namespace RealTimeTabSynchronizer.Server
 						await ForEveryOtherConnectedBrowserWithTab(browserId, changedServerTab.Id,
 							async (browserTabId, connectionInfo) =>
 							{
-								// TODO When to update client side tab list? Now or after receiving ack?
 								await Clients.Client(connectionInfo.ConnectionId).ChangeTabUrl(browserTabId, newUrl);
 							});
 					}
@@ -239,7 +253,6 @@ namespace RealTimeTabSynchronizer.Server
 						await ForEveryOtherConnectedBrowserWithTab(browserId, activatedServerTab.Id,
 							async (browserTabId, connectionInfo) =>
 							{
-								// TODO When to update client side tab list? Now or after receiving ack?
 								await Clients.Client(connectionInfo.ConnectionId).ActivateTab(browserTabId);
 							});
 					}
@@ -406,7 +419,6 @@ namespace RealTimeTabSynchronizer.Server
 										await ForEveryOtherConnectedBrowserWithTab(browserId, changedServerTab.Id,
 											async (browserTabId, connectionInfo) =>
 											{
-												// TODO When to update client side tab list? Now or after receiving ack?
 												await Clients.Client(connectionInfo.ConnectionId).ChangeTabUrl(browserTabId, dto.NewUrl);
 											});
 									}
@@ -418,7 +430,6 @@ namespace RealTimeTabSynchronizer.Server
 									await ForEveryOtherConnectedBrowserWithTab(browserId, movedServerTab.Id,
 										async (browserTabId, connectionInfo) =>
 										{
-											// TODO When to update client side tab list? Now or after receiving ack?
 											await Clients.Client(connectionInfo.ConnectionId).MoveTab(browserTabId, dto.NewIndex);
 										});
 									break;
@@ -430,7 +441,6 @@ namespace RealTimeTabSynchronizer.Server
 										await ForEveryOtherConnectedBrowserWithTab(browserId, closedServerTab.Id,
 											async (browserTabId, connectionInfo) =>
 											{
-												// TODO When to update client side tab list? Now or after receiving ack?
 												await Clients.Client(connectionInfo.ConnectionId).CloseTab(browserTabId);
 											});
 									}
@@ -454,18 +464,15 @@ namespace RealTimeTabSynchronizer.Server
 		}
 
 		private void UpdateBrowserTabIdMapping(
-			IReadOnlyCollection<BrowserTab> browserTabsOnServer,
-			IReadOnlyCollection<TabData> browserTabsOnBrowser,
+			IEnumerable<BrowserTab> browserTabsOnServer,
+			IEnumerable<TabData> browserTabsOnBrowser,
 			IReadOnlyCollection<TabAction> actionsDoneSinceLastServerUpdate)
 		{
-			var newTabsByIndex = browserTabsOnBrowser.ToDictionary(x => x.Index);
+			var upToDateBrowserTabsByIndex = browserTabsOnBrowser.ToDictionary(x => x.Index);
 
 			foreach (var tabOnServer in browserTabsOnServer)
 			{
-				// TODO We need to also maintain tab index for client as tab index could be changed
-				// server side.
-				var oldIndex = tabOnServer.ServerTab.Index.Value;
-				var newIndex = GetTabIndexAfterChanges(oldIndex, actionsDoneSinceLastServerUpdate);
+				var newIndex = mIndexCalculator.GetTabIndexAfterChanges(tabOnServer.Index, actionsDoneSinceLastServerUpdate);
 				if (newIndex == null)
 				{
 					// Will be removed in the next step but id needs to be unique.
@@ -473,7 +480,7 @@ namespace RealTimeTabSynchronizer.Server
 				}
 				else
 				{
-					tabOnServer.BrowserTabId = newTabsByIndex[newIndex].Id;
+					tabOnServer.BrowserTabId = upToDateBrowserTabsByIndex[newIndex].Id;
 				}
 			}
 		}
@@ -491,7 +498,7 @@ namespace RealTimeTabSynchronizer.Server
 				var currentIndex = (tabMovedChange == null) ? change.TabIndex : tabMovedChange.NewIndex;
 
 				var changesAfterThisOne = allChanges.SkipWhile(x => x != change).Skip(1);
-				var newIndex = GetTabIndexAfterChanges(currentIndex, changesAfterThisOne);
+				var newIndex = mIndexCalculator.GetTabIndexAfterChanges(currentIndex, changesAfterThisOne);
 				if (newIndex != null)
 				{
 					return newIdsByIndex[newIndex.Value];
@@ -504,109 +511,14 @@ namespace RealTimeTabSynchronizer.Server
 				return null;
 			}
 
-			var previousIndex = GetTabIndexBeforeChanges(change.TabIndex, allChanges.TakeWhile(x => x != change));
+			var previousIndex = mIndexCalculator.GetTabIndexBeforeChanges(change.TabIndex, allChanges.TakeWhile(x => x != change));
 			if (previousIndex == null)
 			{
 				// Could be added and removed before update -> TODO should be optimized out
 				return null;
 			}
 
-			return browserStateOnLastUpdate.Single(x => x.ServerTab.Index == previousIndex).BrowserTabId;
-		}
-
-		private int? GetTabIndexAfterChanges(int currentIndex, IEnumerable<TabAction> changes)
-		{
-			var newIndex = currentIndex;
-
-			foreach (var change in changes)
-			{
-				switch (change)
-				{
-					case TabCreatedDto dto:
-						if (dto.TabIndex <= newIndex)
-						{
-							newIndex++;
-						}
-						break;
-
-					case TabClosedDto dto:
-						if (dto.TabIndex == newIndex)
-						{
-							return null;
-						}
-
-						if (dto.TabIndex < newIndex)
-						{
-							newIndex--;
-						}
-						break;
-
-					case TabMovedDto dto:
-						if (dto.TabIndex == newIndex)
-						{
-							newIndex = dto.NewIndex;
-						}
-						else if (dto.TabIndex > newIndex && dto.NewIndex <= newIndex)
-						{
-							newIndex++;
-						}
-						else if (dto.TabIndex < newIndex && dto.NewIndex >= newIndex)
-						{
-							newIndex--;
-						}
-						break;
-				}
-			}
-
-			return newIndex;
-		}
-
-		// TODO Refactor -> very similar to GetTabIndexAfterChanges
-		private int? GetTabIndexBeforeChanges(int newIndex, IEnumerable<TabAction> changes)
-		{
-			var oldIndex = newIndex;
-
-			foreach (var change in changes.Reverse())
-			{
-				switch (change)
-				{
-					case TabCreatedDto dto:
-						if (dto.TabIndex == oldIndex)
-						{
-							return null;
-						}
-
-						if (dto.TabIndex < oldIndex)
-						{
-							oldIndex--;
-						}
-						break;
-
-					case TabClosedDto dto:
-						if (dto.TabIndex <= oldIndex)
-						{
-							oldIndex++;
-						}
-						break;
-
-					case TabMovedDto dto:
-						if (dto.NewIndex == oldIndex)
-						{
-							oldIndex = dto.TabIndex;
-						}
-						else if (dto.TabIndex > oldIndex && dto.NewIndex <= oldIndex)
-						{
-							oldIndex--;
-						}
-						else if (dto.TabIndex < oldIndex && dto.NewIndex > oldIndex)
-						{
-							oldIndex++;
-						}
-						break;
-				}
-			}
-
-			return newIndex;
+			return browserStateOnLastUpdate.Single(x => x.Index == previousIndex).BrowserTabId;
 		}
 
 		public override Task OnConnected()

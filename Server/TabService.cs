@@ -51,7 +51,19 @@ namespace RealTimeTabSynchronizer.Server
 		public async Task<TabData> AddTab(Guid browserId, int tabId, int tabIndex, string url, bool createInBackground)
 		{
 			var newTab = await AddTab(tabIndex, url, createInBackground);
-			var browserTab = new BrowserTab { BrowserId = browserId, BrowserTabId = tabId, ServerTab = newTab };
+			
+			await mBrowserTabRepository.IncrementTabIndices(
+				browserId,
+				new TabRange(fromIndexInclusive: tabIndex),
+				incrementBy: 1);
+			
+			var browserTab = new BrowserTab
+			{
+				BrowserId = browserId,
+				BrowserTabId = tabId,
+				Index = tabIndex,
+				ServerTab = newTab
+			};
 
 			mBrowserTabRepository.Add(browserTab);
 
@@ -67,32 +79,55 @@ namespace RealTimeTabSynchronizer.Server
 				throw new ArgumentException($"Tab {tabId} on browser {browserId} does not exist!");
 			}
 
-			if (tab.ServerTab.Index == newTabIndex)
+			if (tab.ServerTab.Index != newTabIndex && tab.ServerTab.Index != null)
 			{
-				mLogger.LogDebug($"The tab is already on specified position...");
-				return null;
+				// To prevent UNIQUE violation when decrementing other tabs indices.
+				var oldTabIndex = tab.ServerTab.Index.Value;
+				tab.ServerTab.Index = null;
+
+				// EF doesn't play nice with raw sql due to it's UoW.
+				await mDbContext.SaveChangesAsync();
+
+				if (oldTabIndex < newTabIndex)
+				{
+					await mTabDataRepository.IncrementTabIndices(
+						new TabRange(oldTabIndex + 1, newTabIndex),
+						incrementBy: -1);
+				}
+				else
+				{
+					await mTabDataRepository.IncrementTabIndices(
+						new TabRange(newTabIndex, oldTabIndex - 1),
+						incrementBy: 1);
+				}
+
+				tab.ServerTab.Index = newTabIndex;
 			}
 
-			// To prevent UNIQUE violation when decrementing other tabs indices.
-			tab.ServerTab.Index = null;
-
-			// EF doesn't play nice with raw sql due to it's UoW.
-			await mDbContext.SaveChangesAsync();
-
-			if (tab.ServerTab.Index < newTabIndex)
+			if (tab.Index != newTabIndex)
 			{
-				await mTabDataRepository.IncrementTabIndices(
-					new TabRange(tab.ServerTab.Index.Value + 1, newTabIndex),
-					incrementBy: -1);
-			}
-			else
-			{
-				await mTabDataRepository.IncrementTabIndices(
-					new TabRange(newTabIndex, newTabIndex - 1),
-					incrementBy: 1);
-			}
+				var oldTabIndex = tab.Index;
+				tab.Index = Int32.MaxValue;
 
-			tab.ServerTab.Index = newTabIndex;
+				await mDbContext.SaveChangesAsync();
+
+				if (oldTabIndex < newTabIndex)
+				{
+					await mBrowserTabRepository.IncrementTabIndices(
+						browserId,
+						new TabRange(oldTabIndex + 1, newTabIndex),
+						incrementBy: -1);
+				}
+				else
+				{
+					await mBrowserTabRepository.IncrementTabIndices(
+						browserId,
+						new TabRange(newTabIndex, oldTabIndex - 1),
+						incrementBy: 1);
+				}
+				
+				tab.Index = newTabIndex;
+			}
 
 			return tab.ServerTab;
 		}
@@ -106,20 +141,29 @@ namespace RealTimeTabSynchronizer.Server
 				return null;
 			}
 
-			var tabIndex = tab.ServerTab.Index.Value;
+			if (tab.ServerTab.IsOpen)
+			{
+				var tabIndex = tab.ServerTab.Index.Value;
 
-			// TODO Cleaning of not referenced tabs?
-			tab.ServerTab.IsOpen = false;
+				tab.ServerTab.IsOpen = false;
 
-			// EF doesn't play nice with raw sql due to it's UoW.
-			await mDbContext.SaveChangesAsync();
+				// EF doesn't play nice with raw sql due to it's UoW.
+				await mDbContext.SaveChangesAsync();
 
-			await mTabDataRepository.IncrementTabIndices(
-				new TabRange(fromIndexInclusive: tabIndex + 1),
-				incrementBy: -1);
+				await mTabDataRepository.IncrementTabIndices(
+					new TabRange(fromIndexInclusive: tabIndex + 1),
+					incrementBy: -1);
+			}
 
+			// TODO Cleaning of not referenced server tabs?
 			mBrowserTabRepository.Remove(tab);
 
+			await mDbContext.SaveChangesAsync();
+			await mBrowserTabRepository.IncrementTabIndices(
+				browserId,
+				new TabRange(fromIndexInclusive: tab.Index + 1),
+				incrementBy: -1);
+			
 			return tab.ServerTab;
 		}
 

@@ -47,21 +47,43 @@ namespace RealTimeTabSynchronizer.Server.Tabs.Browsers
 			mContext.Remove(tab);
 		}
 
-		// public Task IncrementTabIndices(Guid browserId, TabRange range, int incrementBy)
-		// {
-		// 	var sql = @"
-		// 		UPDATE ""BrowserTabs""
-		// 		SET ""Index"" = ""Index"" + {0}
-		// 		WHERE ""Index"" >= {1} AND ""Index"" <= {2}";
+		public Task IncrementTabIndices(Guid browserId, TabRange range, int incrementBy)
+		{
+			var sql = String.Empty;
 
-		// 	sql = Regex.Replace(sql, @"\s+", " ");
+			// http://stackoverflow.com/a/7703239/2579010
+			if (incrementBy > 0)
+			{
+				sql = @"
+					UPDATE ""BrowserTabs""
+					SET ""Index"" = -""Index"" - {0}
+					WHERE ""BrowserId"" = {1} AND ""Index"" >= {2} AND ""Index"" <= {3};
+					
+					UPDATE ""BrowserTabs""
+					SET ""Index"" = -""Index""
+					WHERE ""BrowserId"" = {1} AND ""Index"" < 0;";
+			}
+			else
+			{
+				sql = @"
+					UPDATE ""BrowserTabs""
+					SET ""Index"" = -""Index"" + {0}
+					WHERE ""BrowserId"" = {1} AND ""Index"" >= {2} AND ""Index"" <= {3};
+					
+					UPDATE ""BrowserTabs""
+					SET ""Index"" = -""Index"" + 2 * {0}
+					WHERE ""BrowserId"" = {1} AND ""Index"" < 0;";
+			}
 
-		// 	return mContext.Database.ExecuteSqlCommandAsync(
-		// 		sql,
-		// 		CancellationToken.None,
-		// 		incrementBy,
-		// 		range.FromIndexInclusive,
-		// 		range.ToIndexInclusive);
-		// }
+			sql = Regex.Replace(sql, @"\s+", " ");
+
+			return mContext.Database.ExecuteSqlCommandAsync(
+				sql,
+				CancellationToken.None,
+				incrementBy,
+				browserId,
+				range.FromIndexInclusive,
+				range.ToIndexInclusive);
+		}
 	}
 }
