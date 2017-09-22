@@ -186,13 +186,16 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 		}
 
 		[Test]
-		public void ComputeChanges_ReturnsOnlyMoveActionWhenTabHasBeenMoved()
+		public void ComputeChanges_ReturnsOnlyMoveActionWhenTabHasBeenMovedForwardInSingleAction()
 		{
+			// 12345 -> 13452
 			var serverTabs = new TabData[]
 			{
-				new TabData { Id = 1, Index = 2, Url = "1" },
-				new TabData { Id = 2, Index = 3, Url = "2" },
-				new TabData { Id = 3, Index = 1, Url = "3" },
+				new TabData { Id = 1, Index = 1, Url = "1" },
+				new TabData { Id = 2, Index = 5, Url = "2" },
+				new TabData { Id = 3, Index = 2, Url = "3" },
+				new TabData { Id = 4, Index = 3, Url = "4" },
+				new TabData { Id = 5, Index = 4, Url = "5" },
 			};
 
 			var browserTabs = new BrowserTab[]
@@ -200,6 +203,8 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 				new BrowserTab { Index = 1, ServerTab = serverTabs[0] },
 				new BrowserTab { Index = 2, ServerTab = serverTabs[1] },
 				new BrowserTab { Index = 3, ServerTab = serverTabs[2] },
+				new BrowserTab { Index = 4, ServerTab = serverTabs[3] },
+				new BrowserTab { Index = 5, ServerTab = serverTabs[4] },
 			};
 
 			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
@@ -212,10 +217,49 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 			
 			var tabClosedAction = (TabMovedDto)singleChange;
 			
-			Assert.That(tabClosedAction.TabIndex, Is.EqualTo(3));
-			Assert.That(tabClosedAction.NewIndex, Is.EqualTo(1));
+			Assert.That(tabClosedAction.TabIndex, Is.EqualTo(2));
+			Assert.That(tabClosedAction.NewIndex, Is.EqualTo(5));
 		}
 
+		[Test]
+		public void ComputeChanges_ReturnsOnlyMoveActionWhenTabHasBeenMovedBackwardsInSingleAction()
+		{
+			// 12345 -> 14235
+			var serverTabs = new TabData[]
+			{
+				new TabData { Id = 1, Index = 1, Url = "1" },
+				new TabData { Id = 2, Index = 3, Url = "2" },
+				new TabData { Id = 3, Index = 4, Url = "3" },
+				new TabData { Id = 4, Index = 2, Url = "4" },
+				new TabData { Id = 5, Index = 5, Url = "5" },
+			};
+
+			var browserTabs = new BrowserTab[]
+			{
+				new BrowserTab { Index = 1, ServerTab = serverTabs[0] },
+				new BrowserTab { Index = 2, ServerTab = serverTabs[1] },
+				new BrowserTab { Index = 3, ServerTab = serverTabs[2] },
+				new BrowserTab { Index = 4, ServerTab = serverTabs[3] },
+				new BrowserTab { Index = 5, ServerTab = serverTabs[4] },
+			};
+
+			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
+			
+			Assert.That(computedChanges.Count, Is.EqualTo(1));
+
+			var singleChange = computedChanges.Single();
+			
+			Assert.That(singleChange, Is.InstanceOf<TabMovedDto>());
+			
+			var tabClosedAction = (TabMovedDto)singleChange;
+			
+			Assert.That(tabClosedAction.TabIndex, Is.EqualTo(4));
+			Assert.That(tabClosedAction.NewIndex, Is.EqualTo(2));
+		}
+
+		// TODO Multiple move actions
+		// TODO Multiple action combined
+		
 		// TODO Url change detection
 	}
 }
