@@ -71,22 +71,49 @@ namespace RealTimeTabSynchronizer.Server.DiffCalculation
             }
             
             var moveActions = new List<TabMovedDto>();
-            
-            var tabWithBiggestDiff = movedTabs
-                .OrderByDescending(x => Math.Abs(x.Difference))
-                .FirstOrDefault();
-            if (tabWithBiggestDiff != null)
+
+            while (movedTabs.Any(x => x.Difference != 0))
             {
-                if (IsMovedForward(tabWithBiggestDiff, movedTabs) || 
-                    IsMovedBackwards(tabWithBiggestDiff, movedTabs))
+                var tabWithBiggestDiff = movedTabs.OrderByDescending(x => Math.Abs(x.Difference)).FirstOrDefault();
+                if (tabWithBiggestDiff != null)
                 {
-                    moveActions.Add(new TabMovedDto
+                    if (IsMovedForward(tabWithBiggestDiff, movedTabs))
                     {
-                        TabIndex = tabWithBiggestDiff.OriginalIndex,
-                        NewIndex = tabWithBiggestDiff.NewIndex
-                    });
+                        moveActions.Add(new TabMovedDto
+                        {
+                            TabIndex = tabWithBiggestDiff.OriginalIndex,
+                            NewIndex = tabWithBiggestDiff.NewIndex
+                        });
+
+                        var tabsInRange = movedTabs.Where(x => x.OriginalIndex > tabWithBiggestDiff.OriginalIndex && 
+                                                               x.OriginalIndex <= tabWithBiggestDiff.NewIndex);
+                        foreach (var tab in tabsInRange)
+                        {
+                            tab.OriginalIndex--;
+                        }
+                        
+                        tabWithBiggestDiff.OriginalIndex = tabWithBiggestDiff.NewIndex;
+                    }
+                    else if (IsMovedBackwards(tabWithBiggestDiff, movedTabs))
+                    {
+                        moveActions.Add(new TabMovedDto
+                        {
+                            TabIndex = tabWithBiggestDiff.OriginalIndex,
+                            NewIndex = tabWithBiggestDiff.NewIndex
+                        });
+
+                        var tabsInRange = movedTabs.Where(x => x.OriginalIndex < tabWithBiggestDiff.OriginalIndex && 
+                                                               x.OriginalIndex >= tabWithBiggestDiff.NewIndex);
+                        foreach (var tab in tabsInRange)
+                        {
+                            tab.OriginalIndex++;
+                        }
+                        
+                        tabWithBiggestDiff.OriginalIndex = tabWithBiggestDiff.NewIndex;
+                    }
                 }
             }
+            
             return moveActions;
         }
 
