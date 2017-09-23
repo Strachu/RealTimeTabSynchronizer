@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR.Hubs;
 using Newtonsoft.Json.Linq;
 
 namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
@@ -61,6 +62,9 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 
 			mSynchronizer = container.BuildServiceProvider().GetRequiredService<SynchronizerHub>();
 
+			var clientsMock = new Mock<IHubCallerConnectionContext<IBrowserApi>> { DefaultValue = DefaultValue.Mock };
+			mSynchronizer.Clients = clientsMock.Object;
+			
 			mBrowserId = Guid.NewGuid();
 
 			mDbContext.Browsers.Add(new Browser { Id = mBrowserId, Name = "BrowserName" });
