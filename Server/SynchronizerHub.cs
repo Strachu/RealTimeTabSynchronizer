@@ -36,6 +36,7 @@ namespace RealTimeTabSynchronizer.Server
 		private readonly IPendingRequestService mPendingRequestService;
 		private readonly ITabActionDeserializer mTabActionDeserializer;
 		private readonly IIndexCalculator mIndexCalculator;
+		private readonly IDiffCalculator mServerStateDiffCalculator;
 
 		public SynchronizerHub(
 			ILogger<SynchronizerHub> logger,
@@ -49,7 +50,8 @@ namespace RealTimeTabSynchronizer.Server
 			IBrowserService browserService,
 			IPendingRequestService pendingRequestService,
 			ITabActionDeserializer tabActionDeserializer, 
-			IIndexCalculator indexCalculator)
+			IIndexCalculator indexCalculator, 
+			IDiffCalculator serverStateDiffCalculator)
 		{
 			mLogger = logger;
 			mUoW = dbContext;
@@ -63,6 +65,7 @@ namespace RealTimeTabSynchronizer.Server
 			mPendingRequestService = pendingRequestService;
 			mTabActionDeserializer = tabActionDeserializer;
 			mIndexCalculator = indexCalculator;
+			mServerStateDiffCalculator = serverStateDiffCalculator;
 		}
 
 		public async Task AddTab(Guid browserId, int tabId, int index, string url, bool createInBackground)
@@ -380,7 +383,7 @@ namespace RealTimeTabSynchronizer.Server
 
 						await mUoW.SaveChangesAsync();
 
-						// TODO Apply changes from server
+						await ApplyChangesFromServerToBrowser(browserId, browserStateOnLastUpdate);
 
 						// TODO Extract into TabActionToHubMethodsDispatcher if it will work nicely with conflicts
 						var newIdsByIndex = currentlyOpenTabs.ToDictionary(x => x.Index.Value, x => x.Id); // TODO Its done second time
@@ -481,6 +484,51 @@ namespace RealTimeTabSynchronizer.Server
 				else
 				{
 					tabOnServer.BrowserTabId = upToDateBrowserTabsByIndex[newIndex].Id;
+				}
+			}
+		}
+
+		private async Task ApplyChangesFromServerToBrowser(Guid browserId, IReadOnlyCollection<BrowserTab> browserStateOnLastUpdate)
+		{
+			var serverState = (await mTabDataRepository.GetAllTabs()).ToList();
+			var serverSideChanges = mServerStateDiffCalculator.ComputeChanges(browserStateOnLastUpdate, serverState).ToList();
+
+			foreach (var change in serverSideChanges)
+			{
+				if (change is TabCreatedDto addTabAction)
+				{
+					var changesAfterThisOne = serverSideChanges.SkipWhile(x => x != addTabAction).Skip(1);
+					var finalServerTabIndex = mIndexCalculator.GetTabIndexAfterChanges(addTabAction.TabIndex, changesAfterThisOne);
+					var serverTabId = serverState.Single(x => x.Index == finalServerTabIndex).Id;
+						
+					await mBrowserService.AddTab(
+						browserId,
+						serverTabId,
+						addTabAction.TabIndex,
+						addTabAction.Url,
+						addTabAction.CreateInBackground);				
+				}
+
+				var idsByIndex = browserStateOnLastUpdate.ToDictionary(x => x.Index, x => x.BrowserTabId);
+				var browserTabId = GetTabIdOfChangedTab(change, serverSideChanges, browserStateOnLastUpdate, idsByIndex);
+				if (browserTabId == null)
+				{
+					throw new InvalidOperationException("BrowserTabId should not be null for actions other than add tab");
+				}
+
+				switch (change)
+				{
+					case TabUrlChangedDto dto:
+						await Clients.Caller.ChangeTabUrl(browserTabId.Value, dto.NewUrl);
+						break;
+
+					case TabMovedDto dto:
+						await Clients.Caller.MoveTab(browserTabId.Value, dto.NewIndex);
+						break;
+
+					case TabClosedDto dto:
+						await Clients.Caller.CloseTab(browserTabId.Value);
+						break;
 				}
 			}
 		}
