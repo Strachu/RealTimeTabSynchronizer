@@ -280,5 +280,88 @@ namespace RealTimeTabSynchronizer.Tests
 				It.Is<TabRange>(y => y.FromIndexInclusive == 6),
 				-1));
 		}
+		
+		[Test]
+		public async Task ChangeTabUrl_ChangesTheUrlOfServerTabWhenItChanged()
+		{
+			var browserId = Guid.NewGuid();
+			var tabId = 1;
+			var browserTab = new BrowserTab()
+			{
+				Url = "oldUrl",
+				ServerTab = new TabData()
+				{
+					Url = "oldUrl"
+				}
+			};
+			
+			mBrowserTabRepositoryMock.Setup(x => x.GetByBrowserTabId(browserId, tabId)).Returns(Task.FromResult(browserTab));
+
+			await mTabService.ChangeTabUrl(browserId, tabId, "newUrl");
+
+			Assert.That(browserTab.ServerTab.Url, Is.EqualTo("newUrl"));
+		}
+		
+		[Test]
+		public async Task ChangeTabUrl_ChangesTheUrlOfBrowserTabWhenItChanged()
+		{
+			var browserId = Guid.NewGuid();
+			var tabId = 1;
+			var browserTab = new BrowserTab()
+			{
+				Url = "oldUrl",
+				ServerTab = new TabData()
+				{
+					Url = "oldUrl"
+				}
+			};
+			
+			mBrowserTabRepositoryMock.Setup(x => x.GetByBrowserTabId(browserId, tabId)).Returns(Task.FromResult(browserTab));
+
+			await mTabService.ChangeTabUrl(browserId, tabId, "newUrl");
+
+			Assert.That(browserTab.Url, Is.EqualTo("newUrl"));
+		}
+		
+		[Test]
+		public async Task ChangeTabUrl_DoesNotReturnServerTabWhenItsUrlDidNotChange()
+		{
+			var browserId = Guid.NewGuid();
+			var tabId = 1;
+			var browserTab = new BrowserTab()
+			{
+				ServerTab = new TabData()
+				{
+					Url = "newUrl"
+				}
+			};
+			
+			mBrowserTabRepositoryMock.Setup(x => x.GetByBrowserTabId(browserId, tabId)).Returns(Task.FromResult(browserTab));
+
+			var returnedTab = await mTabService.ChangeTabUrl(browserId, tabId, "newUrl");
+
+			Assert.That(returnedTab, Is.Null);
+		}
+		
+		[Test]
+		public async Task ChangeTabUrl_ChangesTheUrlOfBrowserTabWhenItChangedEvenWhenServerTabDidNotChange()
+		{
+			var browserId = Guid.NewGuid();
+			var tabId = 1;
+			var browserTab = new BrowserTab()
+			{
+				Url = "oldUrl",
+				ServerTab = new TabData()
+				{
+					Url = "newUrl"
+				}
+			};
+			
+			mBrowserTabRepositoryMock.Setup(x => x.GetByBrowserTabId(browserId, tabId)).Returns(Task.FromResult(browserTab));
+
+			await mTabService.ChangeTabUrl(browserId, tabId, "newUrl");
+
+			Assert.That(browserTab.Url, Is.EqualTo("newUrl"));
+		}
 	}
 }

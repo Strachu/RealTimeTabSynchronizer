@@ -80,6 +80,7 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 					BrowserId = mBrowserId,
 					BrowserTabId = 100 + tab.Index.Value,
 					Index = tab.Index.Value,
+					Url = tab.Url,
 					ServerTab = tab
 				});
 			}

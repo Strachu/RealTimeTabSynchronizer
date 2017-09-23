@@ -62,6 +62,7 @@ namespace RealTimeTabSynchronizer.Server
 				BrowserId = browserId,
 				BrowserTabId = tabId,
 				Index = tabIndex,
+				Url = url,
 				ServerTab = newTab
 			};
 
@@ -175,9 +176,10 @@ namespace RealTimeTabSynchronizer.Server
 				throw new ArgumentException($"Tab {tabId} on browser {browserId} does not exist!");
 			}
 
+			tab.Url = newUrl;
+			
 			if (tab.ServerTab.Url.Equals(newUrl, StringComparison.OrdinalIgnoreCase))
 			{
-				mLogger.LogDebug($"The url did not change.");
 				return null;
 			}
 

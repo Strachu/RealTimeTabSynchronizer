@@ -18,8 +18,12 @@ namespace RealTimeTabSynchronizer.Server.DiffCalculation
             var addActions = GetAddActions(originalTabsWithAdjustedIndices, changed);
             var closeActions = GetCloseActions(originalTabsWithAdjustedIndices);
             var moveActions = GetMoveActions(originalTabsWithAdjustedIndices);
+            var urlChangeActions = GetUrlChangedActions(originalTabsWithAdjustedIndices);
 
-            return addActions.Concat<TabAction>(closeActions).Concat(moveActions);
+            return addActions
+                .Concat<TabAction>(closeActions)
+                .Concat(moveActions)
+                .Concat(urlChangeActions);
         }
 
         private IEnumerable<TabCreatedDto> GetAddActions(
@@ -116,6 +120,18 @@ namespace RealTimeTabSynchronizer.Server.DiffCalculation
             }
             
             return moveActions;
+        }
+        
+        private IEnumerable<TabUrlChangedDto> GetUrlChangedActions(IReadOnlyCollection<TabWithAdjustedIndices> original)
+        {
+            var tabsWithChangedUrl = original
+                .Where(x => !x.Tab.Url.Equals(x.Tab.ServerTab.Url, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            return tabsWithChangedUrl.Select(x => new TabUrlChangedDto
+            {
+                TabIndex = x.OriginalIndex,
+                NewUrl = x.Tab.ServerTab.Url
+            });
         }
 
         private bool IsMovedForward(TabWithAdjustedIndices tab, IEnumerable<TabWithAdjustedIndices> allTabs)

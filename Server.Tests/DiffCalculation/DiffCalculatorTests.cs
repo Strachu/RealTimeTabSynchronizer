@@ -30,9 +30,9 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 
 			var browserTabs = new BrowserTab[]
 			{
-				new BrowserTab { Index = 1, ServerTab = serverTabs[0] },
-				new BrowserTab { Index = 2, ServerTab = serverTabs[1] },
-				new BrowserTab { Index = 3, ServerTab = serverTabs[2] },
+				NewBrowserTab(index: 1, serverTab: serverTabs[0]),
+				NewBrowserTab(index: 2, serverTab: serverTabs[1]),
+				NewBrowserTab(index: 3, serverTab: serverTabs[2]),
 			};
 
 			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs);
@@ -53,9 +53,9 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 
 			var browserTabs = new BrowserTab[]
 			{
-				new BrowserTab { Index = 1, ServerTab = serverTabs[0] },
-				new BrowserTab { Index = 2, ServerTab = serverTabs[1] },
-				new BrowserTab { Index = 3, ServerTab = serverTabs[2] },
+				NewBrowserTab(index: 1, serverTab: serverTabs[0]),
+				NewBrowserTab(index: 2, serverTab: serverTabs[1]),
+				NewBrowserTab(index: 3, serverTab: serverTabs[2]),
 			};
 
 			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
@@ -85,9 +85,9 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 
 			var browserTabs = new BrowserTab[]
 			{
-				new BrowserTab { Index = 1, ServerTab = serverTabs[0] },
-				new BrowserTab { Index = 2, ServerTab = serverTabs[2] },
-				new BrowserTab { Index = 3, ServerTab = serverTabs[3] },
+				NewBrowserTab(index: 1, serverTab: serverTabs[0]),
+				NewBrowserTab(index: 2, serverTab: serverTabs[2]),
+				NewBrowserTab(index: 3, serverTab: serverTabs[3]),
 			};
 
 			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
@@ -117,9 +117,9 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 
 			var browserTabs = new BrowserTab[]
 			{
-				new BrowserTab { Index = 1, ServerTab = serverTabs[0] },
-				new BrowserTab { Index = 2, ServerTab = serverTabs[1] },
-				new BrowserTab { Index = 3, ServerTab = serverTabs[2] },
+				NewBrowserTab(index: 1, serverTab: serverTabs[0]),
+				NewBrowserTab(index: 2, serverTab: serverTabs[1]),
+				NewBrowserTab(index: 3, serverTab: serverTabs[2]),
 			};
 
 			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
@@ -141,8 +141,8 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 
 			var browserTabs = new BrowserTab[]
 			{
-				new BrowserTab { Index = 1, ServerTab = serverTabs[0] },
-				new BrowserTab { Index = 2, ServerTab = serverTabs[1] },
+				NewBrowserTab(index: 1, serverTab: serverTabs[0]),
+				NewBrowserTab(index: 2, serverTab: serverTabs[1]),
 			};
 
 			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
@@ -167,9 +167,9 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 
 			var browserTabs = new BrowserTab[]
 			{
-				new BrowserTab { Index = 1, ServerTab = serverTabs[0] },
-				new BrowserTab { Index = 2, ServerTab = serverTabs[1] },
-				new BrowserTab { Index = 3, ServerTab = new TabData { Index = null, Url = "3" } },
+				NewBrowserTab(index: 1, serverTab: serverTabs[0]),
+				NewBrowserTab(index: 2, serverTab: serverTabs[1]),
+				NewBrowserTab(index: 3, serverTab: new TabData { Index = null, Url = "3" }),
 			};
 
 			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
@@ -196,9 +196,9 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 
 			var browserTabs = new BrowserTab[]
 			{
-				new BrowserTab { Index = 1, ServerTab = serverTabs[0] },
-				new BrowserTab { Index = 2, ServerTab = new TabData { Index = null, Url = "3" } },
-				new BrowserTab { Index = 3, ServerTab = serverTabs[1] },
+				NewBrowserTab(index: 1, serverTab: serverTabs[0]),
+				NewBrowserTab(index: 2, serverTab: new TabData { Index = null, Url = "3" }),
+				NewBrowserTab(index: 3, serverTab: serverTabs[1]),
 			};
 
 			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
@@ -226,10 +226,10 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 
 			var browserTabs = new BrowserTab[]
 			{
-				new BrowserTab { Index = 1, ServerTab = new TabData { Index = null, Url = "1" } },
-				new BrowserTab { Index = 2, ServerTab = serverTabs[0] },
-				new BrowserTab { Index = 3, ServerTab = new TabData { Index = null, Url = "3" } },
-				new BrowserTab { Index = 4, ServerTab = serverTabs[1] },
+				NewBrowserTab(index: 1, serverTab: new TabData { Index = null, Url = "1" }),
+				NewBrowserTab(index: 2, serverTab: serverTabs[0]),
+				NewBrowserTab(index: 3, serverTab: new TabData { Index = null, Url = "3" }),
+				NewBrowserTab(index: 4, serverTab: serverTabs[1]),
 			};
 
 			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
@@ -256,11 +256,11 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 
 			var browserTabs = new BrowserTab[]
 			{
-				new BrowserTab { Index = 1, ServerTab = serverTabs[0] },
-				new BrowserTab { Index = 2, ServerTab = serverTabs[1] },
-				new BrowserTab { Index = 3, ServerTab = serverTabs[2] },
-				new BrowserTab { Index = 4, ServerTab = serverTabs[3] },
-				new BrowserTab { Index = 5, ServerTab = serverTabs[4] },
+				NewBrowserTab(index: 1, serverTab: serverTabs[0]),
+				NewBrowserTab(index: 2, serverTab: serverTabs[1]),
+				NewBrowserTab(index: 3, serverTab: serverTabs[2]),
+				NewBrowserTab(index: 4, serverTab: serverTabs[3]),
+				NewBrowserTab(index: 5, serverTab: serverTabs[4]),
 			};
 
 			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
@@ -292,11 +292,11 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 
 			var browserTabs = new BrowserTab[]
 			{
-				new BrowserTab { Index = 1, ServerTab = serverTabs[0] },
-				new BrowserTab { Index = 2, ServerTab = serverTabs[1] },
-				new BrowserTab { Index = 3, ServerTab = serverTabs[2] },
-				new BrowserTab { Index = 4, ServerTab = serverTabs[3] },
-				new BrowserTab { Index = 5, ServerTab = serverTabs[4] },
+				NewBrowserTab(index: 1, serverTab: serverTabs[0]),
+				NewBrowserTab(index: 2, serverTab: serverTabs[1]),
+				NewBrowserTab(index: 3, serverTab: serverTabs[2]),
+				NewBrowserTab(index: 4, serverTab: serverTabs[3]),
+				NewBrowserTab(index: 5, serverTab: serverTabs[4]),
 			};
 
 			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
@@ -330,13 +330,13 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 
 			var browserTabs = new BrowserTab[]
 			{
-				new BrowserTab { Index = 1, ServerTab = serverTabs[0] },
-				new BrowserTab { Index = 2, ServerTab = serverTabs[1] },
-				new BrowserTab { Index = 3, ServerTab = serverTabs[2] },
-				new BrowserTab { Index = 4, ServerTab = serverTabs[3] },
-				new BrowserTab { Index = 5, ServerTab = serverTabs[4] },
-				new BrowserTab { Index = 6, ServerTab = serverTabs[5] },
-				new BrowserTab { Index = 7, ServerTab = serverTabs[6] },
+				NewBrowserTab(index: 1, serverTab: serverTabs[0]),
+				NewBrowserTab(index: 2, serverTab: serverTabs[1]),
+				NewBrowserTab(index: 3, serverTab: serverTabs[2]),
+				NewBrowserTab(index: 4, serverTab: serverTabs[3]),
+				NewBrowserTab(index: 5, serverTab: serverTabs[4]),
+				NewBrowserTab(index: 6, serverTab: serverTabs[5]),
+				NewBrowserTab(index: 7, serverTab: serverTabs[6]),
 			};
 
 			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
@@ -366,13 +366,13 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 
 			var browserTabs = new BrowserTab[]
 			{
-				new BrowserTab { Index = 1, ServerTab = serverTabs[0] },
-				new BrowserTab { Index = 2, ServerTab = serverTabs[1] },
-				new BrowserTab { Index = 3, ServerTab = serverTabs[2] },
-				new BrowserTab { Index = 4, ServerTab = serverTabs[3] },
-				new BrowserTab { Index = 5, ServerTab = serverTabs[4] },
-				new BrowserTab { Index = 6, ServerTab = serverTabs[5] },
-				new BrowserTab { Index = 7, ServerTab = serverTabs[6] },
+				NewBrowserTab(index: 1, serverTab: serverTabs[0]),
+				NewBrowserTab(index: 2, serverTab: serverTabs[1]),
+				NewBrowserTab(index: 3, serverTab: serverTabs[2]),
+				NewBrowserTab(index: 4, serverTab: serverTabs[3]),
+				NewBrowserTab(index: 5, serverTab: serverTabs[4]),
+				NewBrowserTab(index: 6, serverTab: serverTabs[5]),
+				NewBrowserTab(index: 7, serverTab: serverTabs[6]),
 			};
 
 			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
@@ -402,13 +402,13 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 
 			var browserTabs = new BrowserTab[]
 			{
-				new BrowserTab { Index = 1, ServerTab = serverTabs[0] },
-				new BrowserTab { Index = 2, ServerTab = serverTabs[1] },
-				new BrowserTab { Index = 3, ServerTab = serverTabs[2] },
-				new BrowserTab { Index = 4, ServerTab = serverTabs[3] },
-				new BrowserTab { Index = 5, ServerTab = serverTabs[4] },
-				new BrowserTab { Index = 6, ServerTab = serverTabs[5] },
-				new BrowserTab { Index = 7, ServerTab = serverTabs[6] },
+				NewBrowserTab(index: 1, serverTab: serverTabs[0]),
+				NewBrowserTab(index: 2, serverTab: serverTabs[1]),
+				NewBrowserTab(index: 3, serverTab: serverTabs[2]),
+				NewBrowserTab(index: 4, serverTab: serverTabs[3]),
+				NewBrowserTab(index: 5, serverTab: serverTabs[4]),
+				NewBrowserTab(index: 6, serverTab: serverTabs[5]),
+				NewBrowserTab(index: 7, serverTab: serverTabs[6]),
 			};
 
 			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
@@ -442,15 +442,15 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 
 			var browserTabs = new BrowserTab[]
 			{
-				new BrowserTab { Index = 1, ServerTab = serverTabs[0] },
-				new BrowserTab { Index = 2, ServerTab = serverTabs[1] },
-				new BrowserTab { Index = 3, ServerTab = serverTabs[2] },
-				new BrowserTab { Index = 4, ServerTab = serverTabs[3] },
-				new BrowserTab { Index = 5, ServerTab = serverTabs[4] },
-				new BrowserTab { Index = 6, ServerTab = serverTabs[5] },
-				new BrowserTab { Index = 7, ServerTab = serverTabs[6] },
-				new BrowserTab { Index = 8, ServerTab = serverTabs[7] },
-				new BrowserTab { Index = 9, ServerTab = serverTabs[8] },
+				NewBrowserTab(index: 1, serverTab: serverTabs[0]),
+				NewBrowserTab(index: 2, serverTab: serverTabs[1]),
+				NewBrowserTab(index: 3, serverTab: serverTabs[2]),
+				NewBrowserTab(index: 4, serverTab: serverTabs[3]),
+				NewBrowserTab(index: 5, serverTab: serverTabs[4]),
+				NewBrowserTab(index: 6, serverTab: serverTabs[5]),
+				NewBrowserTab(index: 7, serverTab: serverTabs[6]),
+				NewBrowserTab(index: 8, serverTab: serverTabs[7]),
+				NewBrowserTab(index: 9, serverTab: serverTabs[8]),
 			};
 
 			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
@@ -483,15 +483,15 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 
 			var browserTabs = new BrowserTab[]
 			{
-				new BrowserTab { Index = 1, ServerTab = serverTabs[0] },
-				new BrowserTab { Index = 2, ServerTab = serverTabs[1] },
-				new BrowserTab { Index = 3, ServerTab = serverTabs[2] },
-				new BrowserTab { Index = 4, ServerTab = serverTabs[3] },
-				new BrowserTab { Index = 5, ServerTab = serverTabs[4] },
-				new BrowserTab { Index = 6, ServerTab = serverTabs[5] },
-				new BrowserTab { Index = 7, ServerTab = serverTabs[6] },
-				new BrowserTab { Index = 8, ServerTab = serverTabs[7] },
-				new BrowserTab { Index = 9, ServerTab = serverTabs[8] },
+				NewBrowserTab(index: 1, serverTab: serverTabs[0]),
+				NewBrowserTab(index: 2, serverTab: serverTabs[1]),
+				NewBrowserTab(index: 3, serverTab: serverTabs[2]),
+				NewBrowserTab(index: 4, serverTab: serverTabs[3]),
+				NewBrowserTab(index: 5, serverTab: serverTabs[4]),
+				NewBrowserTab(index: 6, serverTab: serverTabs[5]),
+				NewBrowserTab(index: 7, serverTab: serverTabs[6]),
+				NewBrowserTab(index: 8, serverTab: serverTabs[7]),
+				NewBrowserTab(index: 9, serverTab: serverTabs[8]),
 			};
 
 			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
@@ -527,15 +527,15 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 
 			var browserTabs = new BrowserTab[]
 			{
-				new BrowserTab { Index = 1, ServerTab = serverTabs[0] },
-				new BrowserTab { Index = 2, ServerTab = serverTabs[1] },
-				new BrowserTab { Index = 3, ServerTab = serverTabs[2] },
-				new BrowserTab { Index = 4, ServerTab = serverTabs[3] },
-				new BrowserTab { Index = 5, ServerTab = serverTabs[4] },
-				new BrowserTab { Index = 6, ServerTab = serverTabs[5] },
-				new BrowserTab { Index = 7, ServerTab = serverTabs[6] },
-				new BrowserTab { Index = 8, ServerTab = serverTabs[7] },
-				new BrowserTab { Index = 9, ServerTab = serverTabs[8] },
+				NewBrowserTab(index: 1, serverTab: serverTabs[0]),
+				NewBrowserTab(index: 2, serverTab: serverTabs[1]),
+				NewBrowserTab(index: 3, serverTab: serverTabs[2]),
+				NewBrowserTab(index: 4, serverTab: serverTabs[3]),
+				NewBrowserTab(index: 5, serverTab: serverTabs[4]),
+				NewBrowserTab(index: 6, serverTab: serverTabs[5]),
+				NewBrowserTab(index: 7, serverTab: serverTabs[6]),
+				NewBrowserTab(index: 8, serverTab: serverTabs[7]),
+				NewBrowserTab(index: 9, serverTab: serverTabs[8]),
 			};
 
 			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
@@ -565,11 +565,11 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 
 			var browserTabs = new BrowserTab[]
 			{
-				new BrowserTab { Index = 1, ServerTab = serverTabs[0] },
-				new BrowserTab { Index = 2, ServerTab = serverTabs[1] },
-				new BrowserTab { Index = 3, ServerTab = new TabData { Index = null, Url = "3" } },
-				new BrowserTab { Index = 4, ServerTab = new TabData { Index = null, Url = "4" } },
-				new BrowserTab { Index = 5, ServerTab = serverTabs[2] },
+				NewBrowserTab(index: 1, serverTab: serverTabs[0]),
+				NewBrowserTab(index: 2, serverTab: serverTabs[1]),
+				NewBrowserTab(index: 3, serverTab: new TabData { Index = null, Url = "3" }),
+				NewBrowserTab(index: 4, serverTab: new TabData { Index = null, Url = "4" }),
+				NewBrowserTab(index: 5, serverTab: serverTabs[2]),
 			};
 
 			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
@@ -599,6 +599,77 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 			Assert.That(action4.NewIndex, Is.EqualTo(3));
 		}
 		
-		// TODO Url change detection
+		[Test]
+		public void ComputeChanges_ReturnsUrlChangeWhenOriginalBrowserUrlDiffersFromServerTabUrl()
+		{
+			var serverTabs = new TabData[]
+			{
+				new TabData { Id = 1, Index = 1, Url = "1" },
+				new TabData { Id = 2, Index = 2, Url = "2 changed" },
+				new TabData { Id = 3, Index = 3, Url = "3" },
+			};
+
+			var browserTabs = new BrowserTab[]
+			{
+				NewBrowserTab(index: 1, browserUrl: "1", serverTab: serverTabs[0]),
+				NewBrowserTab(index: 2, browserUrl: "2", serverTab: serverTabs[1]),
+				NewBrowserTab(index: 3, browserUrl: "3", serverTab: serverTabs[2]),
+			};
+
+			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
+			
+			Assert.That(computedChanges.Count, Is.EqualTo(1));
+
+			var singleChange = computedChanges.Single();
+			
+			Assert.That(singleChange, Is.InstanceOf<TabUrlChangedDto>());
+			
+			var urlChangedAction = (TabUrlChangedDto)singleChange;
+			
+			Assert.That(urlChangedAction.TabIndex, Is.EqualTo(2));
+			Assert.That(urlChangedAction.NewUrl, Is.EqualTo("2 changed"));
+		}
+		
+		[Test]
+		public void ComputeChanges_ReturnsCorrectUrlChangeWhenOriginalBrowserUrlDiffersFromServerTabUrlAndHasBeenMoved()
+		{
+			// 1234 -> 1324 -> 4132
+			var serverTabs = new TabData[]
+			{
+				new TabData { Id = 1, Index = 2, Url = "1" },
+				new TabData { Id = 2, Index = 4, Url = "2 changed" },
+				new TabData { Id = 3, Index = 3, Url = "3" },
+				new TabData { Id = 4, Index = 1, Url = "4" },
+			};
+
+			var browserTabs = new BrowserTab[]
+			{
+				NewBrowserTab(index: 1, browserUrl: "1", serverTab: serverTabs[0]),
+				NewBrowserTab(index: 2, browserUrl: "2", serverTab: serverTabs[1]),
+				NewBrowserTab(index: 3, browserUrl: "3", serverTab: serverTabs[2]),
+				NewBrowserTab(index: 4, browserUrl: "4", serverTab: serverTabs[3]),
+			};
+
+			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
+			
+			Assert.That(computedChanges.Count, Is.EqualTo(3));
+			Assert.That(computedChanges[0], Is.InstanceOf<TabMovedDto>());
+			Assert.That(computedChanges[1], Is.InstanceOf<TabMovedDto>());
+			Assert.That(computedChanges[2], Is.InstanceOf<TabUrlChangedDto>());
+			var urlChangedAction = (TabUrlChangedDto)computedChanges[2];
+			
+			Assert.That(urlChangedAction.TabIndex, Is.EqualTo(4));
+			Assert.That(urlChangedAction.NewUrl, Is.EqualTo("2 changed"));
+		}
+
+		private BrowserTab NewBrowserTab(int index, TabData serverTab, string browserUrl = null)
+		{
+			return new BrowserTab
+			{
+				Index = index,
+				ServerTab = serverTab,
+				Url = browserUrl ?? serverTab.Url
+			};
+		}
 	}
 }
