@@ -13,63 +13,64 @@ namespace RealTimeTabSynchronizer.Server.DiffCalculation
             IReadOnlyCollection<BrowserTab> original,
             IReadOnlyCollection<TabData> changed)
         {
-            var addActions = GetAddActions(original, changed).ToList();
-            var closeActions = GetCloseActions(original).ToList();
-            var moveActions = GetMoveActions(original, addActions, closeActions);
+            var originalTabsWithAdjustedIndices = original.Select(x => new TabWithAdjustedIndices(x)).ToList();
+            
+            var addActions = GetAddActions(originalTabsWithAdjustedIndices, changed);
+            var closeActions = GetCloseActions(originalTabsWithAdjustedIndices);
+            var moveActions = GetMoveActions(originalTabsWithAdjustedIndices);
 
             return addActions.Concat<TabAction>(closeActions).Concat(moveActions);
         }
 
-        private IEnumerable<TabCreatedDto> GetAddActions(IReadOnlyCollection<BrowserTab> original, IReadOnlyCollection<TabData> changed)
+        private IEnumerable<TabCreatedDto> GetAddActions(
+            IReadOnlyCollection<TabWithAdjustedIndices> original,
+            IReadOnlyCollection<TabData> changed)
         {
-            var addedTabs = changed.Where(x => original.All(y => !x.Equals(y.ServerTab))).Where(x => x.IsOpen);
-            return addedTabs.Select(x => new TabCreatedDto
-            {
-                CreateInBackground = true,
-                TabIndex = x.Index.Value,
-                Url = x.Url
-            });
-        }
-
-        private IEnumerable<TabClosedDto> GetCloseActions(IReadOnlyCollection<BrowserTab> original)
-        {
-            var closedTabs = original.Where(x => !x.ServerTab.IsOpen).ToList();
-            return closedTabs.Select(x => new TabClosedDto
-            {
-                TabIndex = x.Index
-            });
-        }
-
-        private IEnumerable<TabMovedDto> GetMoveActions(
-            IEnumerable<BrowserTab> original,
-            IEnumerable<TabCreatedDto> addActions,
-            IEnumerable<TabClosedDto> closeActions)
-        {
-            var movedTabs = original
-                .Where(x => x.ServerTab.IsOpen)
-                .Select(x => new TabWithAdjustedIndices
+            var addedTabs = changed.Where(x => original.All(y => !x.Equals(y.Tab.ServerTab))).Where(x => x.IsOpen);
+            var addActions = addedTabs.Select(x => new TabCreatedDto
                 {
-                    Tab = x,
-                    OriginalIndex = x.Index,
-                    NewIndex = x.ServerTab.Index ?? -1
-                }).ToList();
-
-            foreach (var addAction in addActions)
+                    CreateInBackground = true,
+                    TabIndex = x.Index.Value,
+                    Url = x.Url
+                })
+                .OrderBy(x => x.TabIndex)
+                .ToList();
+            
+            foreach (var action in addActions)
             {
-                foreach (var tab in movedTabs.Where(x => x.OriginalIndex >= addAction.TabIndex))
+                foreach (var tab in original.Where(x => x.OriginalIndex >= action.TabIndex))
                 {
                     tab.OriginalIndex++;
                 }
             }
- 
-            foreach (var closeAction in closeActions)
+            
+            return addActions;
+        }
+
+        private IEnumerable<TabClosedDto> GetCloseActions(IReadOnlyCollection<TabWithAdjustedIndices> original)
+        {
+            var closedTabs = original.Where(x => !x.Tab.ServerTab.IsOpen).ToList();
+            var closeActions = new List<TabClosedDto>();
+
+            foreach (var closedTab in closedTabs)
             {
-                foreach (var tab in movedTabs.Where(x => x.OriginalIndex > closeAction.TabIndex))
+                closeActions.Add(new TabClosedDto
+                {
+                    TabIndex = closedTab.OriginalIndex
+                });
+                
+                foreach (var tab in original.Where(x => x.OriginalIndex > closedTab.OriginalIndex))
                 {
                     tab.OriginalIndex--;
                 }
-            }
+            }       
             
+            return closeActions;
+        }
+
+        private IEnumerable<TabMovedDto> GetMoveActions(IEnumerable<TabWithAdjustedIndices> original)
+        {
+            var movedTabs = original.Where(x => x.Tab.ServerTab.IsOpen).ToList();
             var moveActions = new List<TabMovedDto>();
 
             while (movedTabs.Any(x => x.Difference != 0))
@@ -133,10 +134,16 @@ namespace RealTimeTabSynchronizer.Server.DiffCalculation
         
         private class TabWithAdjustedIndices
         {
+            public TabWithAdjustedIndices(BrowserTab tab)
+            {
+                Tab = tab;
+                OriginalIndex = tab.Index;
+            }
+            
             public BrowserTab Tab { get; set; }
             public int OriginalIndex { get; set; }
-            public int NewIndex { get; set; }
 
+            public int NewIndex => Tab.ServerTab.Index.Value;
             public int Difference => NewIndex - OriginalIndex;
         }
     }

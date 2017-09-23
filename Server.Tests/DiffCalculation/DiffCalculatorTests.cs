@@ -128,6 +128,35 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 		}
 
 		[Test]
+		public void ComputeChanges_ReturnsAddActionsWithCorrectIndicesWhen2TabsHasBeenAdded()
+		{
+			// 12 -> 132 -> 1432
+			var serverTabs = new TabData[]
+			{
+				new TabData { Id = 1, Index = 1, Url = "1" },
+				new TabData { Id = 2, Index = 4, Url = "2" },
+				new TabData { Id = 3, Index = 3, Url = "3" },
+				new TabData { Id = 4, Index = 2, Url = "4" },
+			};
+
+			var browserTabs = new BrowserTab[]
+			{
+				new BrowserTab { Index = 1, ServerTab = serverTabs[0] },
+				new BrowserTab { Index = 2, ServerTab = serverTabs[1] },
+			};
+
+			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
+			var addActions = computedChanges.Cast<TabCreatedDto>().ToList();
+			
+			// Just different order of operations than original
+			Assert.That(addActions.Count, Is.EqualTo(2));
+			Assert.That(addActions[0].TabIndex, Is.EqualTo(2));
+			Assert.That(addActions[0].Url, Is.EqualTo("4"));
+			Assert.That(addActions[1].TabIndex, Is.EqualTo(3));
+			Assert.That(addActions[1].Url, Is.EqualTo("3"));
+		}
+
+		[Test]
 		public void ComputeChanges_ReturnsOnlyCloseActionWhenTabHasBeenClosedAtTheEnd()
 		{
 			var serverTabs = new TabData[]
@@ -183,6 +212,33 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 			var tabClosedAction = (TabClosedDto)singleChange;
 			
 			Assert.That(tabClosedAction.TabIndex, Is.EqualTo(2));
+		}
+
+		[Test]
+		public void ComputeChanges_ReturnsCloseActionsWithCorrectIndicesWhen2TabsHasBeenClosed()
+		{
+			// 1234 -> 124 -> 24
+			var serverTabs = new TabData[]
+			{
+				new TabData { Id = 2, Index = 1, Url = "2" },
+				new TabData { Id = 4, Index = 2, Url = "4" },
+			};
+
+			var browserTabs = new BrowserTab[]
+			{
+				new BrowserTab { Index = 1, ServerTab = new TabData { Index = null, Url = "1" } },
+				new BrowserTab { Index = 2, ServerTab = serverTabs[0] },
+				new BrowserTab { Index = 3, ServerTab = new TabData { Index = null, Url = "3" } },
+				new BrowserTab { Index = 4, ServerTab = serverTabs[1] },
+			};
+
+			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
+			var closeActions = computedChanges.Cast<TabClosedDto>().ToList();
+			
+			// Just different order of operations than original
+			Assert.That(closeActions.Count, Is.EqualTo(2));
+			Assert.That(closeActions[0].TabIndex, Is.EqualTo(1));
+			Assert.That(closeActions[1].TabIndex, Is.EqualTo(2));
 		}
 
 		[Test]
@@ -495,7 +551,53 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 			Assert.That(moveActions[2].NewIndex, Is.EqualTo(6));
 		}
 		
-		// TODO Multiple action combined
+		[Test]
+		public void ComputeChanges_ReturnsCorrectChangesWhenAllActionTypesChangingIndicesAreExecutedAtOnce()
+		{
+			// 12345 -> 1235 -> 16235 -> 62135 -> 6215
+			var serverTabs = new TabData[]
+			{
+				new TabData { Id = 1, Index = 3, Url = "1" },
+				new TabData { Id = 2, Index = 2, Url = "2" },
+				new TabData { Id = 5, Index = 4, Url = "5" },
+				new TabData { Id = 6, Index = 1, Url = "6" },
+			};
+
+			var browserTabs = new BrowserTab[]
+			{
+				new BrowserTab { Index = 1, ServerTab = serverTabs[0] },
+				new BrowserTab { Index = 2, ServerTab = serverTabs[1] },
+				new BrowserTab { Index = 3, ServerTab = new TabData { Index = null, Url = "3" } },
+				new BrowserTab { Index = 4, ServerTab = new TabData { Index = null, Url = "4" } },
+				new BrowserTab { Index = 5, ServerTab = serverTabs[2] },
+			};
+
+			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
+			
+			// A little different than original but the result is the same with the same amount of steps
+			Assert.That(computedChanges.Count, Is.EqualTo(4));
+			Assert.That(computedChanges[0], Is.InstanceOf<TabCreatedDto>());
+			var action1 = (TabCreatedDto)computedChanges[0];
+			
+			Assert.That(action1.TabIndex, Is.EqualTo(1));
+			Assert.That(action1.Url, Is.EqualTo("6"));
+			
+			Assert.That(computedChanges[1], Is.InstanceOf<TabClosedDto>());
+			var action2 = (TabClosedDto)computedChanges[1];
+			
+			Assert.That(action2.TabIndex, Is.EqualTo(4));
+			
+			Assert.That(computedChanges[2], Is.InstanceOf<TabClosedDto>());
+			var action3 = (TabClosedDto)computedChanges[2];
+			
+			Assert.That(action3.TabIndex, Is.EqualTo(4));
+			
+			Assert.That(computedChanges[3], Is.InstanceOf<TabMovedDto>());
+			var action4 = (TabMovedDto)computedChanges[3];
+			
+			Assert.That(action4.TabIndex, Is.EqualTo(2));
+			Assert.That(action4.NewIndex, Is.EqualTo(3));
+		}
 		
 		// TODO Url change detection
 	}
