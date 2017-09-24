@@ -502,13 +502,15 @@ namespace RealTimeTabSynchronizer.Server
 					var changesAfterThisOne = serverSideChanges.SkipWhile(x => x != addTabAction).Skip(1);
 					var finalServerTabIndex = mIndexCalculator.GetTabIndexAfterChanges(addTabAction.TabIndex, changesAfterThisOne);
 					var serverTabId = serverState.Single(x => x.Index == finalServerTabIndex).Id;
-						
+
 					await mBrowserService.AddTab(
 						browserId,
 						serverTabId,
 						addTabAction.TabIndex,
 						addTabAction.Url,
-						addTabAction.CreateInBackground);				
+						addTabAction.CreateInBackground);
+
+					continue;
 				}
 
 				var idsByIndex = browserStateOnLastUpdate.ToDictionary(x => x.Index, x => x.BrowserTabId);
