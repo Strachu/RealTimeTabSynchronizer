@@ -326,6 +326,28 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 			AssertTabDataCorrect(tabs.Single(x => x.Index == 2), tabId: 1, url: "http://www.tab0.com");
 		}	
 
+		// Databases like to throw Unique contraint violation in this situation regardless of the fact
+		// that after executing all updates no violation will occur.
+		[Test]
+		public async Task BrowserTabsIdAreUpdatedWithoutException_EvenWhenJustOrderOfIdChanges()
+		{
+			await mSynchronizer.Synchronize(mBrowserId,
+				changesSinceLastConnection: new object[0],
+				currentlyOpenTabs: new TabData[]
+				{
+					new TabData() { Id = 101, Index = 0, Url = "http://www.tab0.com" },
+					new TabData() { Id = 100, Index = 1, Url = "http://www.tab1.com" },
+					new TabData() { Id = 102, Index = 2, Url = "http://www.tab2.com" },
+				});
+
+			var tabs = mDbContext.BrowserTabs.AsNoTracking().Include(x => x.ServerTab).ToList();
+
+			Assert.That(tabs.Count, Is.EqualTo(3));
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 0), tabId: 101, url: "http://www.tab0.com");
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 1), tabId: 100, url: "http://www.tab1.com");
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 2), tabId: 102, url: "http://www.tab2.com");
+		}
+
 		private void AssertTabDataCorrect(BrowserTab tab, int tabId, string url)
 		{
 			Assert.That(tab.BrowserTabId, Is.EqualTo(tabId));
