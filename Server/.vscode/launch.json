@@ -10,7 +10,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceRoot}/bin/Debug/netcoreapp1.0/RealTimeTabSynchronizer.Server.dll",
+            "program": "${workspaceRoot}/bin/Debug/netcoreapp2.0/RealTimeTabSynchronizer.Server.dll",
             "args": [],
             "cwd": "${workspaceRoot}",
             "stopAtEntry": false,

@@ -342,6 +342,8 @@ namespace RealTimeTabSynchronizer.Server
 							{
 								BrowserId = browserId,
 								BrowserTabId = oldTabValue.Id,
+								Index = i,
+								Url = newTabValue.Url,
 								ServerTab = allServerTabs[i]
 							};
 							mBrowserTabRepository.Add(clientSideTab);
