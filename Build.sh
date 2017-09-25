@@ -18,7 +18,7 @@ zip -r9 -j Bin/Firefox/Android/RealTimeTabSynchronizer.xpi \
 	"Client/Firefox/Settings.html" \
 	"Client/Firefox/Settings.page.js" \
 	"Client/Firefox/Settings.js" \
-	"Client/Firefox/Android/Overrides.js" \
+	Client/Firefox/Android/Overrides*.js \
 
 echo "Building Firefox Desktop extension..."
 
@@ -44,6 +44,6 @@ cd Server
 dotnet build -c Release
 cd ..
 cp -R Server/bin/Release Bin/Server
-cp Server/appsettings.json Bin/Server/Release/netcoreapp1.0/
+cp Server/appsettings.json Bin/Server/Release/netcoreapp2.0/
 	
 echo "Done"
