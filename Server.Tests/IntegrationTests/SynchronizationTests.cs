@@ -181,171 +181,45 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 			Assert.That(tabs.Single(x => x.Index == 2).Url, Is.EquivalentTo("http://www.tab2.com"));
 		}
 
-		/// <summary>
-		/// At least Firefox resets the tab ids during every restart of the browser.
-		/// </summary>
 		[Test]
-		public async Task BrowserTabsIdAreUpdated_EvenWhenNothingChanged()
+		public async Task ServerStateIsCorrectAfterAdding2Tabs()
 		{
-			await mSynchronizer.Synchronize(mBrowserId,
-				changesSinceLastConnection: new object[0],
-				currentlyOpenTabs: new TabData[]
-				{
-					new TabData() { Id = 1, Index = 0, Url = "http://www.tab0.com" },
-					new TabData() { Id = 2, Index = 1, Url = "http://www.tab1.com" },
-					new TabData() { Id = 3, Index = 2, Url = "http://www.tab2.com" },
-				});
-
-			var tabs = mDbContext.BrowserTabs.AsNoTracking().Include(x => x.ServerTab).ToList();
-
-			Assert.That(tabs.Count, Is.EqualTo(3));
-			AssertTabDataCorrect(tabs.Single(x => x.Index == 0), tabId: 1, url: "http://www.tab0.com");
-			AssertTabDataCorrect(tabs.Single(x => x.Index == 1), tabId: 2, url: "http://www.tab1.com");
-			AssertTabDataCorrect(tabs.Single(x => x.Index == 2), tabId: 3, url: "http://www.tab2.com");
-		}	
-		
-		[Test]
-		public async Task BrowserTabsIdAreUpdatedCorrectly_WhenTabHasBeenMovedServerSide()
-		{
-			mDbContext.Tabs.Single(x => x.Url == "http://www.tab2.com").Index = Int32.MaxValue;
-			await mDbContext.SaveChangesAsync();
-			mDbContext.Tabs.Single(x => x.Url == "http://www.tab1.com").Index = 2;
-			mDbContext.Tabs.Single(x => x.Url == "http://www.tab2.com").Index = 1;
-			await mDbContext.SaveChangesAsync();
-			
-			await mSynchronizer.Synchronize(mBrowserId,
-				changesSinceLastConnection: new object[0],
-				currentlyOpenTabs: new TabData[]
-				{
-					new TabData() { Id = 1, Index = 0, Url = "http://www.tab0.com" },
-					new TabData() { Id = 2, Index = 1, Url = "http://www.tab1.com" },
-					new TabData() { Id = 3, Index = 2, Url = "http://www.tab2.com" },
-				});
-
-			var tabs = mDbContext.BrowserTabs.AsNoTracking().Include(x => x.ServerTab).ToList();
-
-			Assert.That(tabs.Count, Is.EqualTo(3));
-			AssertTabDataCorrect(tabs.Single(x => x.Index == 0), tabId: 1, url: "http://www.tab0.com");
-			AssertTabDataCorrect(tabs.Single(x => x.Index == 1), tabId: 2, url: "http://www.tab1.com");
-			AssertTabDataCorrect(tabs.Single(x => x.Index == 2), tabId: 3, url: "http://www.tab2.com");
-		}
-		
-		[Test]
-		public async Task BrowserTabsIdAreUpdatedCorrectly_WhenNewTabsHaveBeenAdded()
-		{
-			// 012 -> 0X1X2
+			// 012 -> 3012 -> 30142
 			await mSynchronizer.Synchronize(mBrowserId,
 				changesSinceLastConnection: new object[]
 				{
 					JObject.Parse(@"{
 						type: ""createTab"",
 						dateTime: ""2017-01-01 10:00:00"",
-						index: 1,
-						url: ""http://newtab"",
-						createInBackground: 0						
+						index: 0,
+						url: ""http://www.tab3.com"",
+						createInBackground: 0			
 					}"),
 					JObject.Parse(@"{
 						type: ""createTab"",
 						dateTime: ""2017-01-01 11:00:00"",
 						index: 3,
-						url: ""http://newtab"",
+						url: ""http://www.tab4.com"",
 						createInBackground: 1		
 					}")
 				},
 				currentlyOpenTabs: new TabData[]
 				{
-					new TabData() { Id = 1, Index = 0, Url = "http://www.tab0.com" },
-					new TabData() { Id = 900, Index = 1, Url = "http://newtab" },
-					new TabData() { Id = 2, Index = 2, Url = "http://www.tab1.com" },
-					new TabData() { Id = 901, Index = 3, Url = "http://newtab" },
-					new TabData() { Id = 3, Index = 4, Url = "http://www.tab2.com" },
+					new TabData() { Id = 0, Index = 1, Url = "http://www.tab0.com" },
+					new TabData() { Id = 1, Index = 2, Url = "http://www.tab1.com" },
+					new TabData() { Id = 2, Index = 4, Url = "http://www.tab2.com" },
+					new TabData() { Id = 3, Index = 0, Url = "http://www.tab3.com" },
+					new TabData() { Id = 4, Index = 3, Url = "http://www.tab4.com" },
 				});
 
-			var tabs = mDbContext.BrowserTabs.AsNoTracking().Include(x => x.ServerTab).ToList();
+			var tabs = mDbContext.BrowserTabs.AsNoTracking().Select(x => x.ServerTab).ToList();
 
 			Assert.That(tabs.Count, Is.EqualTo(5));
-			AssertTabDataCorrect(tabs.Single(x => x.Index == 0), tabId: 1, url: "http://www.tab0.com");
-			AssertTabDataCorrect(tabs.Single(x => x.Index == 1), tabId: 900, url: "http://newtab");
-			AssertTabDataCorrect(tabs.Single(x => x.Index == 2), tabId: 2, url: "http://www.tab1.com");
-			AssertTabDataCorrect(tabs.Single(x => x.Index == 3), tabId: 901, url: "http://newtab");
-			AssertTabDataCorrect(tabs.Single(x => x.Index == 4), tabId: 3, url: "http://www.tab2.com");
-		}		
-		
-		[Test]
-		public async Task BrowserTabsIdAreUpdatedCorrectly_WhenTabHasBeenClosed()
-		{
-			// 012 -> 02
-			await mSynchronizer.Synchronize(mBrowserId,
-				changesSinceLastConnection: new object[]
-				{
-					JObject.Parse(@"{
-						type: ""closeTab"",
-						dateTime: ""2017-01-01 10:02:00"",
-						index: 1,						
-					}")
-				},
-				currentlyOpenTabs: new TabData[]
-				{
-					new TabData() { Id = 1, Index = 0, Url = "http://www.tab0.com" },
-					new TabData() { Id = 3, Index = 1, Url = "http://www.tab2.com" },
-				});
-
-			var tabs = mDbContext.BrowserTabs.AsNoTracking().Include(x => x.ServerTab).ToList();
-
-			Assert.That(tabs.Count, Is.EqualTo(2));
-			AssertTabDataCorrect(tabs.Single(x => x.Index == 0), tabId: 1, url: "http://www.tab0.com");
-			AssertTabDataCorrect(tabs.Single(x => x.Index == 1), tabId: 3, url: "http://www.tab2.com");
-		}		
-		
-		[Test]
-		public async Task BrowserTabsIdAreUpdatedCorrectly_WhenTabHasBeenMoved()
-		{
-			// 012 -> 120
-			await mSynchronizer.Synchronize(mBrowserId,
-				changesSinceLastConnection: new object[]
-				{
-					JObject.Parse(@"{
-						type: ""moveTab"",
-						dateTime: ""2017-01-01 10:00:00"",
-						index: 0,			
-						newIndex: 2,	
-					}")
-				},
-				currentlyOpenTabs: new TabData[]
-				{
-					new TabData() { Id = 2, Index = 0, Url = "http://www.tab1.com" },
-					new TabData() { Id = 3, Index = 1, Url = "http://www.tab2.com" },
-					new TabData() { Id = 1, Index = 2, Url = "http://www.tab0.com" },
-				});
-
-			var tabs = mDbContext.BrowserTabs.AsNoTracking().Include(x => x.ServerTab).ToList();
-
-			Assert.That(tabs.Count, Is.EqualTo(3));
-			AssertTabDataCorrect(tabs.Single(x => x.Index == 0), tabId: 2, url: "http://www.tab1.com");
-			AssertTabDataCorrect(tabs.Single(x => x.Index == 1), tabId: 3, url: "http://www.tab2.com");
-			AssertTabDataCorrect(tabs.Single(x => x.Index == 2), tabId: 1, url: "http://www.tab0.com");
-		}	
-
-		// Databases like to throw Unique contraint violation in this situation regardless of the fact
-		// that after executing all updates no violation will occur.
-		[Test]
-		public async Task BrowserTabsIdAreUpdatedWithoutException_EvenWhenJustOrderOfIdChanges()
-		{
-			await mSynchronizer.Synchronize(mBrowserId,
-				changesSinceLastConnection: new object[0],
-				currentlyOpenTabs: new TabData[]
-				{
-					new TabData() { Id = 101, Index = 0, Url = "http://www.tab0.com" },
-					new TabData() { Id = 100, Index = 1, Url = "http://www.tab1.com" },
-					new TabData() { Id = 102, Index = 2, Url = "http://www.tab2.com" },
-				});
-
-			var tabs = mDbContext.BrowserTabs.AsNoTracking().Include(x => x.ServerTab).ToList();
-
-			Assert.That(tabs.Count, Is.EqualTo(3));
-			AssertTabDataCorrect(tabs.Single(x => x.Index == 0), tabId: 101, url: "http://www.tab0.com");
-			AssertTabDataCorrect(tabs.Single(x => x.Index == 1), tabId: 100, url: "http://www.tab1.com");
-			AssertTabDataCorrect(tabs.Single(x => x.Index == 2), tabId: 102, url: "http://www.tab2.com");
+			Assert.That(tabs.Single(x => x.Index == 0).Url, Is.EquivalentTo("http://www.tab3.com"));
+			Assert.That(tabs.Single(x => x.Index == 1).Url, Is.EquivalentTo("http://www.tab0.com"));
+			Assert.That(tabs.Single(x => x.Index == 2).Url, Is.EquivalentTo("http://www.tab1.com"));
+			Assert.That(tabs.Single(x => x.Index == 3).Url, Is.EquivalentTo("http://www.tab4.com"));
+			Assert.That(tabs.Single(x => x.Index == 4).Url, Is.EquivalentTo("http://www.tab2.com"));
 		}
 
 		[Test]
@@ -396,6 +270,304 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 			Assert.That(tabs.Single(x => x.Index == 1).Url, Is.EquivalentTo("http://www.tab2.com"));
 			Assert.That(tabs.Single(x => x.Index == 2).Url, Is.EquivalentTo("http://www.tab3.com"));
 			Assert.That(tabs.Single(x => x.Index == 3).Url, Is.EquivalentTo("http://www.tab5.com"));
+		}
+
+		[Test]
+		public async Task ServerStateIsCorrectAfterChangingUrlOf2Tabs()
+		{
+			await mSynchronizer.Synchronize(mBrowserId,
+				changesSinceLastConnection: new object[]
+				{
+					JObject.Parse(@"{
+						type: ""changeTabUrl"",
+						dateTime: ""2017-01-01 10:00:00"",
+						index: 1,			
+						newUrl: ""new url 1"",			
+					}"),
+					JObject.Parse(@"{
+						type: ""changeTabUrl"",
+						dateTime: ""2017-01-01 10:00:00"",
+						index: 2,			
+						newUrl: ""new url 2"",
+					}")
+				},
+				currentlyOpenTabs: new TabData[]
+				{
+					new TabData() { Id = 0, Index = 0, Url = "http://www.tab0.com" },
+					new TabData() { Id = 1, Index = 1, Url = "new url 1" },
+					new TabData() { Id = 2, Index = 2, Url = "new url 2" },
+				});
+
+			var tabs = mDbContext.BrowserTabs.AsNoTracking().Select(x => x.ServerTab).ToList();
+
+			Assert.That(tabs.Count, Is.EqualTo(3));
+			Assert.That(tabs.Single(x => x.Index == 0).Url, Is.EquivalentTo("http://www.tab0.com"));
+			Assert.That(tabs.Single(x => x.Index == 1).Url, Is.EquivalentTo("new url 1"));
+			Assert.That(tabs.Single(x => x.Index == 2).Url, Is.EquivalentTo("new url 2"));
+		}
+
+		[Test]
+		public async Task ServerStateIsCorrectAfterMoving2Tabs()
+		{
+			// 012 -> 120 -> 102
+			await mSynchronizer.Synchronize(mBrowserId,
+				changesSinceLastConnection: new object[]
+				{
+					JObject.Parse(@"{
+						type: ""moveTab"",
+						dateTime: ""2017-01-01 10:00:00"",
+						index: 0,			
+						newIndex: 2,	
+					}"),
+					JObject.Parse(@"{
+						type: ""moveTab"",
+						dateTime: ""2017-01-01 10:06:00"",
+						index: 1,			
+						newIndex: 2,	
+					}")
+				},
+				currentlyOpenTabs: new TabData[]
+				{
+					new TabData() { Id = 0, Index = 1, Url = "http://www.tab0.com" },
+					new TabData() { Id = 1, Index = 0, Url = "http://www.tab1.com" },
+					new TabData() { Id = 2, Index = 2, Url = "http://www.tab2.com" },
+				});
+
+			var tabs = mDbContext.BrowserTabs.AsNoTracking().Select(x => x.ServerTab).ToList();
+
+			Assert.That(tabs.Count, Is.EqualTo(3));
+			Assert.That(tabs.Single(x => x.Index == 0).Url, Is.EquivalentTo("http://www.tab1.com"));
+			Assert.That(tabs.Single(x => x.Index == 1).Url, Is.EquivalentTo("http://www.tab0.com"));
+			Assert.That(tabs.Single(x => x.Index == 2).Url, Is.EquivalentTo("http://www.tab2.com"));
+		}
+
+		[Test]
+		public async Task ServerStateIsCorrectAfterApplyingManyDifferentActions()
+		{
+			// 012 -> 0312 -> 3102 -> 31024 -> 30214 -> 3014
+			await mSynchronizer.Synchronize(mBrowserId,
+				changesSinceLastConnection: new object[]
+				{
+					JObject.Parse(@"{
+						type: ""createTab"",
+						dateTime: ""2017-01-01 10:00:00"",
+						index: 1,
+						url: ""http://www.tab3.com"",
+						createInBackground: 0						
+					}"),
+					JObject.Parse(@"{
+						type: ""moveTab"",
+						dateTime: ""2017-01-01 10:05:00"",
+						index: 0,			
+						newIndex: 2,	
+					}"),
+					JObject.Parse(@"{
+						type: ""createTab"",
+						dateTime: ""2017-01-01 10:10:00"",
+						index: 4,
+						url: ""http://www.tab4.com"",
+						createInBackground: 0								
+					}"),
+					JObject.Parse(@"{
+						type: ""moveTab"",
+						dateTime: ""2017-01-01 10:15:00"",
+						index: 1,			
+						newIndex: 3,	
+					}"),
+					JObject.Parse(@"{
+						type: ""changeTabUrl"",
+						dateTime: ""2017-01-01 10:25:30"",
+						index: 3,			
+						newUrl: ""new url"",		
+					}"),
+					JObject.Parse(@"{
+						type: ""closeTab"",
+						dateTime: ""2017-01-01 10:30:00"",
+						index: 2,			
+					}"),
+				},
+				currentlyOpenTabs: new TabData[]
+				{
+					new TabData() { Id = 0, Index = 1, Url = "http://www.tab0.com" },
+					new TabData() { Id = 1, Index = 2, Url = "new url" },
+					new TabData() { Id = 3, Index = 0, Url = "http://www.tab3.com" },
+					new TabData() { Id = 4, Index = 3, Url = "http://www.tab4.com" },
+				});
+
+			var tabs = mDbContext.BrowserTabs.AsNoTracking().Select(x => x.ServerTab).ToList();
+
+			Assert.That(tabs.Count, Is.EqualTo(4));
+			Assert.That(tabs.Single(x => x.Index == 0).Url, Is.EquivalentTo("http://www.tab3.com"));
+			Assert.That(tabs.Single(x => x.Index == 1).Url, Is.EquivalentTo("http://www.tab0.com"));
+			Assert.That(tabs.Single(x => x.Index == 2).Url, Is.EquivalentTo("new url"));
+			Assert.That(tabs.Single(x => x.Index == 3).Url, Is.EquivalentTo("http://www.tab4.com"));
+		}
+
+		/// <summary>
+		/// At least Firefox resets the tab ids during every restart of the browser.
+		/// </summary>
+		[Test]
+		public async Task BrowserTabsIdAreUpdated_EvenWhenNothingChanged()
+		{
+			await mSynchronizer.Synchronize(mBrowserId,
+				changesSinceLastConnection: new object[0],
+				currentlyOpenTabs: new TabData[]
+				{
+					new TabData() { Id = 1, Index = 0, Url = "http://www.tab0.com" },
+					new TabData() { Id = 2, Index = 1, Url = "http://www.tab1.com" },
+					new TabData() { Id = 3, Index = 2, Url = "http://www.tab2.com" },
+				});
+
+			var tabs = mDbContext.BrowserTabs.AsNoTracking().Include(x => x.ServerTab).ToList();
+
+			Assert.That(tabs.Count, Is.EqualTo(3));
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 0), tabId: 1, url: "http://www.tab0.com");
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 1), tabId: 2, url: "http://www.tab1.com");
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 2), tabId: 3, url: "http://www.tab2.com");
+		}
+
+		[Test]
+		public async Task BrowserTabsIdAreUpdatedCorrectly_WhenTabHasBeenMovedServerSide()
+		{
+			mDbContext.Tabs.Single(x => x.Url == "http://www.tab2.com").Index = Int32.MaxValue;
+			await mDbContext.SaveChangesAsync();
+			mDbContext.Tabs.Single(x => x.Url == "http://www.tab1.com").Index = 2;
+			mDbContext.Tabs.Single(x => x.Url == "http://www.tab2.com").Index = 1;
+			await mDbContext.SaveChangesAsync();
+
+			await mSynchronizer.Synchronize(mBrowserId,
+				changesSinceLastConnection: new object[0],
+				currentlyOpenTabs: new TabData[]
+				{
+					new TabData() { Id = 1, Index = 0, Url = "http://www.tab0.com" },
+					new TabData() { Id = 2, Index = 1, Url = "http://www.tab1.com" },
+					new TabData() { Id = 3, Index = 2, Url = "http://www.tab2.com" },
+				});
+
+			var tabs = mDbContext.BrowserTabs.AsNoTracking().Include(x => x.ServerTab).ToList();
+
+			Assert.That(tabs.Count, Is.EqualTo(3));
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 0), tabId: 1, url: "http://www.tab0.com");
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 1), tabId: 2, url: "http://www.tab1.com");
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 2), tabId: 3, url: "http://www.tab2.com");
+		}
+
+		[Test]
+		public async Task BrowserTabsIdAreUpdatedCorrectly_WhenNewTabsHaveBeenAdded()
+		{
+			// 012 -> 0X1X2
+			await mSynchronizer.Synchronize(mBrowserId,
+				changesSinceLastConnection: new object[]
+				{
+					JObject.Parse(@"{
+						type: ""createTab"",
+						dateTime: ""2017-01-01 10:00:00"",
+						index: 1,
+						url: ""http://newtab"",
+						createInBackground: 0						
+					}"),
+					JObject.Parse(@"{
+						type: ""createTab"",
+						dateTime: ""2017-01-01 11:00:00"",
+						index: 3,
+						url: ""http://newtab"",
+						createInBackground: 1		
+					}")
+				},
+				currentlyOpenTabs: new TabData[]
+				{
+					new TabData() { Id = 1, Index = 0, Url = "http://www.tab0.com" },
+					new TabData() { Id = 900, Index = 1, Url = "http://newtab" },
+					new TabData() { Id = 2, Index = 2, Url = "http://www.tab1.com" },
+					new TabData() { Id = 901, Index = 3, Url = "http://newtab" },
+					new TabData() { Id = 3, Index = 4, Url = "http://www.tab2.com" },
+				});
+
+			var tabs = mDbContext.BrowserTabs.AsNoTracking().Include(x => x.ServerTab).ToList();
+
+			Assert.That(tabs.Count, Is.EqualTo(5));
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 0), tabId: 1, url: "http://www.tab0.com");
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 1), tabId: 900, url: "http://newtab");
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 2), tabId: 2, url: "http://www.tab1.com");
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 3), tabId: 901, url: "http://newtab");
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 4), tabId: 3, url: "http://www.tab2.com");
+		}
+
+		[Test]
+		public async Task BrowserTabsIdAreUpdatedCorrectly_WhenTabHasBeenClosed()
+		{
+			// 012 -> 02
+			await mSynchronizer.Synchronize(mBrowserId,
+				changesSinceLastConnection: new object[]
+				{
+					JObject.Parse(@"{
+						type: ""closeTab"",
+						dateTime: ""2017-01-01 10:02:00"",
+						index: 1,						
+					}")
+				},
+				currentlyOpenTabs: new TabData[]
+				{
+					new TabData() { Id = 1, Index = 0, Url = "http://www.tab0.com" },
+					new TabData() { Id = 3, Index = 1, Url = "http://www.tab2.com" },
+				});
+
+			var tabs = mDbContext.BrowserTabs.AsNoTracking().Include(x => x.ServerTab).ToList();
+
+			Assert.That(tabs.Count, Is.EqualTo(2));
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 0), tabId: 1, url: "http://www.tab0.com");
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 1), tabId: 3, url: "http://www.tab2.com");
+		}
+
+		[Test]
+		public async Task BrowserTabsIdAreUpdatedCorrectly_WhenTabHasBeenMoved()
+		{
+			// 012 -> 120
+			await mSynchronizer.Synchronize(mBrowserId,
+				changesSinceLastConnection: new object[]
+				{
+					JObject.Parse(@"{
+						type: ""moveTab"",
+						dateTime: ""2017-01-01 10:00:00"",
+						index: 0,			
+						newIndex: 2,	
+					}")
+				},
+				currentlyOpenTabs: new TabData[]
+				{
+					new TabData() { Id = 2, Index = 0, Url = "http://www.tab1.com" },
+					new TabData() { Id = 3, Index = 1, Url = "http://www.tab2.com" },
+					new TabData() { Id = 1, Index = 2, Url = "http://www.tab0.com" },
+				});
+
+			var tabs = mDbContext.BrowserTabs.AsNoTracking().Include(x => x.ServerTab).ToList();
+
+			Assert.That(tabs.Count, Is.EqualTo(3));
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 0), tabId: 2, url: "http://www.tab1.com");
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 1), tabId: 3, url: "http://www.tab2.com");
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 2), tabId: 1, url: "http://www.tab0.com");
+		}
+
+		// Databases like to throw Unique contraint violation in this situation regardless of the fact
+		// that after executing all updates no violation will occur.
+		[Test]
+		public async Task BrowserTabsIdAreUpdatedWithoutException_EvenWhenJustOrderOfIdChanges()
+		{
+			await mSynchronizer.Synchronize(mBrowserId,
+				changesSinceLastConnection: new object[0],
+				currentlyOpenTabs: new TabData[]
+				{
+					new TabData() { Id = 101, Index = 0, Url = "http://www.tab0.com" },
+					new TabData() { Id = 100, Index = 1, Url = "http://www.tab1.com" },
+					new TabData() { Id = 102, Index = 2, Url = "http://www.tab2.com" },
+				});
+
+			var tabs = mDbContext.BrowserTabs.AsNoTracking().Include(x => x.ServerTab).ToList();
+
+			Assert.That(tabs.Count, Is.EqualTo(3));
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 0), tabId: 101, url: "http://www.tab0.com");
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 1), tabId: 100, url: "http://www.tab1.com");
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 2), tabId: 102, url: "http://www.tab2.com");
 		}
 
 		private async Task AddServerTabs(IEnumerable<TabData> serverTabs)

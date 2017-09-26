@@ -78,6 +78,7 @@ namespace RealTimeTabSynchronizer.Server.TabData_
 
 			sql = Regex.Replace(sql, @"\s+", " ");
 
+			await mContext.SaveChangesAsync(); // To ensure everything has been flushed - already lost some hours of debugging due to a lack of savechanges before raw sql
 			await mContext.Database.ExecuteSqlCommandAsync(
 				sql,
 				CancellationToken.None,
