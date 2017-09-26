@@ -348,6 +348,74 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 			AssertTabDataCorrect(tabs.Single(x => x.Index == 2), tabId: 102, url: "http://www.tab2.com");
 		}
 
+		[Test]
+		public async Task ServerStateIsCorrectAfterRemoving2Tabs()
+		{
+			mDbContext.BrowserTabs.RemoveRange(mDbContext.BrowserTabs);
+			mDbContext.Tabs.RemoveRange(mDbContext.Tabs);
+			await mDbContext.SaveChangesAsync();
+			var serverTabs = new[]
+			{
+				new TabData { Index = 0, Url = "http://www.tab0.com" },
+				new TabData { Index = 1, Url = "http://www.tab1.com" },
+				new TabData { Index = 2, Url = "http://www.tab2.com" },
+				new TabData { Index = 3, Url = "http://www.tab3.com" },
+				new TabData { Index = 4, Url = "http://www.tab4.com" },
+				new TabData { Index = 5, Url = "http://www.tab5.com" },
+			};
+
+			await AddServerTabs(serverTabs);
+
+			// 012345 -> 02345 -> 0235
+			await mSynchronizer.Synchronize(mBrowserId,
+				changesSinceLastConnection: new object[]
+				{
+					JObject.Parse(@"{
+						type: ""closeTab"",
+						dateTime: ""2017-01-01 10:00:00"",
+						index: 1,				
+					}"),
+					JObject.Parse(@"{
+						type: ""closeTab"",
+						dateTime: ""2017-01-01 10:02:00"",
+						index: 3,			
+					}")
+				},
+				currentlyOpenTabs: new TabData[]
+				{
+					new TabData() { Id = 0, Index = 0, Url = "http://www.tab0.com" },
+					new TabData() { Id = 2, Index = 1, Url = "http://www.tab2.com" },
+					new TabData() { Id = 3, Index = 2, Url = "http://www.tab3.com" },
+					new TabData() { Id = 5, Index = 3, Url = "http://www.tab5.com" },
+				});
+
+			var tabs = mDbContext.BrowserTabs.AsNoTracking().Select(x => x.ServerTab).ToList();
+
+			Assert.That(tabs.Count, Is.EqualTo(4));
+			Assert.That(tabs.Single(x => x.Index == 0).Url, Is.EquivalentTo("http://www.tab0.com"));
+			Assert.That(tabs.Single(x => x.Index == 1).Url, Is.EquivalentTo("http://www.tab2.com"));
+			Assert.That(tabs.Single(x => x.Index == 2).Url, Is.EquivalentTo("http://www.tab3.com"));
+			Assert.That(tabs.Single(x => x.Index == 3).Url, Is.EquivalentTo("http://www.tab5.com"));
+		}
+
+		private async Task AddServerTabs(IEnumerable<TabData> serverTabs)
+		{
+			foreach (var tab in serverTabs)
+			{
+				mDbContext.Tabs.Add(tab);
+				mDbContext.BrowserTabs.Add(new BrowserTab
+				{
+					BrowserId = mBrowserId,
+					BrowserTabId = tab.Index.Value,
+					Index = tab.Index.Value,
+					Url = tab.Url,
+					ServerTab = tab
+				});
+			}
+
+			await mDbContext.SaveChangesAsync();
+		}
+
 		private void AssertTabDataCorrect(BrowserTab tab, int tabId, string url)
 		{
 			Assert.That(tab.BrowserTabId, Is.EqualTo(tabId));

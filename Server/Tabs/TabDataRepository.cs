@@ -48,7 +48,7 @@ namespace RealTimeTabSynchronizer.Server.TabData_
 			return mContext.Tabs.CountAsync();
 		}
 
-		public Task IncrementTabIndices(TabRange range, int incrementBy)
+		public async Task IncrementTabIndices(TabRange range, int incrementBy)
 		{
 			var sql = String.Empty;
 
@@ -78,12 +78,24 @@ namespace RealTimeTabSynchronizer.Server.TabData_
 
 			sql = Regex.Replace(sql, @"\s+", " ");
 
-			return mContext.Database.ExecuteSqlCommandAsync(
+			await mContext.Database.ExecuteSqlCommandAsync(
 				sql,
 				CancellationToken.None,
 				incrementBy,
 				range.FromIndexInclusive,
 				range.ToIndexInclusive);
+
+			var affectedTabsInCache = mContext.Tabs.Local.Where(x =>
+				x.Index >= range.FromIndexInclusive &&
+				x.Index <= range.ToIndexInclusive);
+			foreach (var tab in affectedTabsInCache)
+			{
+				tab.Index += incrementBy;
+
+				// Do not issue update statements for performance reasons
+				mContext.Entry(tab).Property(x => x.Index).OriginalValue = tab.Index;
+				mContext.Entry(tab).Property(x => x.Index).IsModified = false;
+			}
 		}
 	}
 }

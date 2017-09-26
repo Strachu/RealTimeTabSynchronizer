@@ -122,6 +122,22 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 			Assert.That(tabs.Single(x => x.BrowserTabId == 4).Index, Is.EqualTo(5));
 		}
 
+		[Test]
+		public async Task IncrementTabIndices_RefreshesAlreadyLoadedEntities()
+		{
+			AddBrowserTab(id: 1, index: 1);
+			AddBrowserTab(id: 2, index: 2);
+			AddBrowserTab(id: 3, index: 3);
+			mDbContext.SaveChanges();
+
+			var tabs = mDbContext.BrowserTabs.ToList();
+
+			await mBrowserTabRepository.IncrementTabIndices(mBrowserId, new TabRange(2), incrementBy: 1);
+
+			Assert.That(tabs.Single(x => x.BrowserTabId == 2).Index, Is.EqualTo(3));
+			Assert.That(tabs.Single(x => x.BrowserTabId == 3).Index, Is.EqualTo(4));
+		}
+
 		private void AddBrowserTab(int id, int index, Guid? browserId = null)
 		{
 			mDbContext.BrowserTabs.Add(new BrowserTab

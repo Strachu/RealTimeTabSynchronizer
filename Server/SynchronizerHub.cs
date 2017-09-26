@@ -133,6 +133,7 @@ namespace RealTimeTabSynchronizer.Server
 						BrowserId = requestData.BrowserId,
 						BrowserTabId = tabId,
 						Index = index,
+						Url = requestData.Url,
 						ServerTabId = requestData.ServerTabId
 					});
 
@@ -388,10 +389,11 @@ namespace RealTimeTabSynchronizer.Server
 						await ApplyChangesFromServerToBrowser(browserId, browserStateOnLastUpdate);
 
 						// TODO Extract into TabActionToHubMethodsDispatcher if it will work nicely with conflicts
-						var newIdsByIndex = currentlyOpenTabs.ToDictionary(x => x.Index.Value, x => x.Id); // TODO Its done second time
+						var oldIdsByIndex = browserStateOnLastUpdate.ToDictionary(x => x.Index, x => x.BrowserTabId);
+						var newIdsByIndex = currentlyOpenTabs.ToDictionary(x => x.Index.Value, x => x.Id);
 						foreach (var change in browserChanges)
 						{
-							var tabId = GetTabIdOfChangedTab(change, browserChanges, browserStateOnLastUpdate, newIdsByIndex);
+							var tabId = GetTabIdOfChangedTab(change, browserChanges, oldIdsByIndex, newIdsByIndex);
 							if (tabId == null)
 							{
 								continue;
@@ -514,7 +516,7 @@ namespace RealTimeTabSynchronizer.Server
 				}
 
 				var idsByIndex = browserStateOnLastUpdate.ToDictionary(x => x.Index, x => x.BrowserTabId);
-				var browserTabId = GetTabIdOfChangedTab(change, serverSideChanges, browserStateOnLastUpdate, idsByIndex);
+				var browserTabId = GetTabIdOfChangedTab(change, serverSideChanges, idsByIndex, idsByIndex);
 				if (browserTabId == null)
 				{
 					throw new InvalidOperationException("BrowserTabId should not be null for actions other than add tab");
@@ -540,8 +542,8 @@ namespace RealTimeTabSynchronizer.Server
 		private int? GetTabIdOfChangedTab(
 			TabAction change,
 			IReadOnlyCollection<TabAction> allChanges,
-			IReadOnlyCollection<BrowserTab> browserStateOnLastUpdate,
-			IDictionary<int, int> newIdsByIndex)
+			IDictionary<int, int> idsByIndexBeforeChanges,
+			IDictionary<int, int> idsByIndexAfterChanges)
 		{
 			// TODO Unit test for TabClosedDto - crashed before
 			if (!(change is TabClosedDto))
@@ -553,7 +555,7 @@ namespace RealTimeTabSynchronizer.Server
 				var newIndex = mIndexCalculator.GetTabIndexAfterChanges(currentIndex, changesAfterThisOne);
 				if (newIndex != null)
 				{
-					return newIdsByIndex[newIndex.Value];
+					return idsByIndexAfterChanges[newIndex.Value];
 				}
 			}
 
@@ -570,7 +572,7 @@ namespace RealTimeTabSynchronizer.Server
 				return null;
 			}
 
-			return browserStateOnLastUpdate.Single(x => x.Index == previousIndex).BrowserTabId;
+			return idsByIndexBeforeChanges[previousIndex.Value];
 		}
 
 		public override Task OnConnected()

@@ -47,7 +47,7 @@ namespace RealTimeTabSynchronizer.Server.Tabs.Browsers
 			mContext.Remove(tab);
 		}
 
-		public Task IncrementTabIndices(Guid browserId, TabRange range, int incrementBy)
+		public async Task IncrementTabIndices(Guid browserId, TabRange range, int incrementBy)
 		{
 			var sql = String.Empty;
 
@@ -77,13 +77,24 @@ namespace RealTimeTabSynchronizer.Server.Tabs.Browsers
 
 			sql = Regex.Replace(sql, @"\s+", " ");
 
-			return mContext.Database.ExecuteSqlCommandAsync(
+			await mContext.Database.ExecuteSqlCommandAsync(
 				sql,
 				CancellationToken.None,
 				incrementBy,
 				browserId,
 				range.FromIndexInclusive,
 				range.ToIndexInclusive);
+
+			var affectedTabsInCache = mContext.BrowserTabs.Local.Where(x =>
+				x.BrowserId == browserId &&
+				x.Index >= range.FromIndexInclusive &&
+				x.Index <= range.ToIndexInclusive);
+			foreach (var tab in affectedTabsInCache)
+			{
+				tab.Index += incrementBy;
+				mContext.Entry(tab).Property(x => x.Index).OriginalValue = tab.Index;
+				mContext.Entry(tab).Property(x => x.Index).IsModified = false;
+			}
 		}
 	}
 }
