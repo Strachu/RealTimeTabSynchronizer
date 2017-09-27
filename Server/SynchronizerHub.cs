@@ -515,8 +515,17 @@ namespace RealTimeTabSynchronizer.Server
 					continue;
 				}
 
-				var idsByIndex = browserStateOnLastUpdate.ToDictionary(x => x.Index, x => x.BrowserTabId);
-				var browserTabId = GetTabIdOfChangedTab(change, serverSideChanges, idsByIndex, idsByIndex);
+				var idsByOldIndex = browserStateOnLastUpdate.ToDictionary(x => x.Index, x => x.BrowserTabId);
+				var idsByNewIndex = serverState
+					.Where(x => x.IsOpen)
+					.Select(x => new
+					{
+						Index = x.Index.Value,
+						BrowserTab = browserStateOnLastUpdate.SingleOrDefault(y => y.ServerTabId == x.Id)
+					})
+					.Where(x => x.BrowserTab != null)
+					.ToDictionary(x => x.Index, x => x.BrowserTab.BrowserTabId);
+				var browserTabId = GetTabIdOfChangedTab(change, serverSideChanges, idsByOldIndex, idsByNewIndex);
 				if (browserTabId == null)
 				{
 					throw new InvalidOperationException("BrowserTabId should not be null for actions other than add tab");

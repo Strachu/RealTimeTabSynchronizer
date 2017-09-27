@@ -146,10 +146,10 @@ function SynchronizerServer(browserId) {
         });
     };
 
-    hub.client.moveTab = function(tabId, oldIndex, newIndex) {
-        console.log("moveTab(" + tabId + ", " + oldIndex + ", " + newIndex + ")");
+    hub.client.moveTab = function(tabId, newIndex) {
+        console.log("moveTab(" + tabId + ", " + newIndex + ")");
 
-        return tabManager.moveTab(tabId, oldIndex, newIndex);
+        return tabManager.moveTab(tabId, newIndex);
     };
 
     hub.client.closeTab = function(tabId) {
