@@ -18,41 +18,47 @@ function SynchronizerServer(browserId) {
 
                 $.connection.hub.qs = {};
 
-                // TODO It's needed only for first time, optimize it for android?
-                var allTabsPromise = tabManager.getAllTabsWithUrls();
-                var allChangesPromise = changeTracker.getAllChanges();
-
-                // TODO There is a small probability of some events being generated between getAllChanges
-                // and setting initialized to true. These events will be lost, to prevent it they should
-                // be saved to a queue and replayed after successful synchronization.
-
-                return Promise.all([allTabsPromise, allChangesPromise])
-                    .then(function(results) {
-                        var allTabs = results[0];
-                        var allChanges = results[1];
-
-                        return hub.server.synchronize(browserId, allChanges, allTabs)
-                            .done(function() {
-                                initialized = true;
-
-                                return changeTracker.clear();
-                            })
-                            .fail(function(error) {
-                                console.error("Failed to synchronize: " + error);
-                                return $.connection.hub.stop();
-                            })
-
-                    });
+                return synchronizeWithServer();
             })
             .fail(function() {
                 console.error("Failed to connect to the server at " + currentServerUrl + ".");
             })
     }
 
+    var synchronizeWithServer = function() {
+        // TODO It's needed only for first time, optimize it for android?
+        var allTabsPromise = tabManager.getAllTabsWithUrls();
+        var allChangesPromise = changeTracker.getAllChanges();
+
+        // TODO There is a small probability of some events being generated between getAllChanges
+        // and setting initialized to true. These events will be lost, to prevent it they should
+        // be saved to a queue and replayed after successful synchronization.
+
+        return Promise.all([allTabsPromise, allChangesPromise])
+            .then(function(results) {
+                var allTabs = results[0];
+                var allChanges = results[1];
+
+                return hub.server.synchronize(browserId, allChanges, allTabs)
+                    .done(function() {
+                        initialized = true;
+
+                        return changeTracker.clear();
+                    })
+                    .fail(function(error) {
+                        console.error("Failed to synchronize: " + error);
+                        return $.connection.hub.stop();
+                    })
+
+            });
+    }
+
     $.connection.hub.disconnected(function() {
         initialized = false;
         disconnectTimeoutHandle = setTimeout(that.connect, 10000);
     });
+
+    $.connection.hub.reconnected(synchronizeWithServer);
 
     this.changeServerUrl = function(newServerUrl) {
         if (newServerUrl != currentServerUrl) {
