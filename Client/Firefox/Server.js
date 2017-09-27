@@ -70,7 +70,10 @@ function SynchronizerServer(browserId) {
 
     this.addTab = function(tabId, index, url, createInBackground) {
         if (canTalkWithServer()) {
-            return hub.server.addTab(browserId, tabId, index, url, createInBackground);
+            return hub.server.addTab(browserId, tabId, index, url, createInBackground)
+                .catch(function() {
+                    return changeTracker.addTab(index, url, createInBackground);
+                });
         } else {
             return changeTracker.addTab(index, url, createInBackground);
         }
@@ -78,7 +81,10 @@ function SynchronizerServer(browserId) {
 
     this.changeTabUrl = function(tabId, tabIndex, url) {
         if (canTalkWithServer()) {
-            return hub.server.changeTabUrl(browserId, tabId, url);
+            return hub.server.changeTabUrl(browserId, tabId, url)
+                .catch(function() {
+                    return changeTracker.changeTabUrl(tabIndex, url);
+                });
         } else {
             return changeTracker.changeTabUrl(tabIndex, url);
         }
@@ -86,7 +92,10 @@ function SynchronizerServer(browserId) {
 
     this.moveTab = function(tabId, fromIndex, newIndex) {
         if (canTalkWithServer()) {
-            return hub.server.moveTab(browserId, tabId, newIndex);
+            return hub.server.moveTab(browserId, tabId, newIndex)
+                .catch(function() {
+                    return changeTracker.moveTab(fromIndex, newIndex);
+                });
         } else {
             return changeTracker.moveTab(fromIndex, newIndex);
         }
@@ -94,7 +103,10 @@ function SynchronizerServer(browserId) {
 
     this.closeTab = function(tabId) {
         if (canTalkWithServer()) {
-            return hub.server.closeTab(browserId, tabId);
+            return hub.server.closeTab(browserId, tabId)
+                .catch(function() {
+                    return tabManager.getTabIndexByTabId(tabId).then(changeTracker.closeTab);
+                });
         } else {
             return tabManager.getTabIndexByTabId(tabId)
                 .then(changeTracker.closeTab);
@@ -103,7 +115,10 @@ function SynchronizerServer(browserId) {
 
     this.activateTab = function(tabId) {
         if (canTalkWithServer()) {
-            return hub.server.activateTab(browserId, tabId);
+            return hub.server.activateTab(browserId, tabId)
+                .catch(function() {
+                    return tabManager.getTabIndexByTabId(tabId).then(changeTracker.activateTab);
+                });
         } else {
             return tabManager.getTabIndexByTabId(tabId)
                 .then(changeTracker.activateTab);
@@ -111,7 +126,9 @@ function SynchronizerServer(browserId) {
     }
 
     var canTalkWithServer = function() {
-        return ($.connection.hub.state !== $.signalR.connectionState.disconnected && initialized);
+        return ($.connection.hub.state !== $.signalR.connectionState.disconnected &&
+            $.connection.hub.state !== $.signalR.connectionState.reconnecting &&
+            initialized);
     }
 
     hub.client.addTab = function(requestId, tabIndex, url, createInBackground) {
