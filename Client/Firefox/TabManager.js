@@ -1,14 +1,25 @@
 function TabManager() {
+    var that = this;
 
-    browser.tabs.onActivated.addListener(onTabActivated);
-    browser.tabs.onCreated.addListener(onTabCreated);
-    browser.tabs.onRemoved.addListener(onTabRemoved);
-    browser.tabs.onUpdated.addListener(onTabUpdated);
-    browser.tabs.onMoved.addListener(onTabMoved);
+    browser.tabs.onActivated.addListener(function(activeInfo) {
+        return invokeOrInterceptHandler(function() { that.onTabActivated(activeInfo); });
+    });
+    browser.tabs.onCreated.addListener(function(createdTab) {
+        return invokeOrInterceptHandler(function() { that.onTabCreated(createdTab); });
+    });
+    browser.tabs.onRemoved.addListener(function(tabId) {
+        return invokeOrInterceptHandler(function() { that.onTabRemoved(tabId); });
+    });
+    browser.tabs.onUpdated.addListener(function(tabId, changeInfo, tabInfo) {
+        return invokeOrInterceptHandler(function() { that.onTabUpdated(tabId, changeInfo, tabInfo); });
+    });
+    browser.tabs.onMoved.addListener(function(tabId, moveInfo) {
+        return invokeOrInterceptHandler(function() { that.onTabMoved(tabId, moveInfo); });
+    });
 
     // Used to queue the event handlers, without queing the event handlers can finish out of order
     // when different type of event handlers uses different amount of async calls.
-    var handlerQueuePromise = Promise.resolve();
+    this.handlerQueuePromise = Promise.resolve();
     var tabsWithOnCreatedCalled = {};
 
     // Temporary variables to prevent invoking server.addTab() for tabs created by addon.
@@ -20,7 +31,7 @@ function TabManager() {
     var createTabResultPendingCount = 0;
     var invokeOrInterceptHandler = function(handler) {
         if (createTabResultPendingCount == 0) {
-            return handlerQueuePromise = handlerQueuePromise.then(handler, handler);
+            return that.handlerQueuePromise = that.handlerQueuePromise.then(handler, handler);
         } else {
             capturedEventHandlers.push(handler);
         }
@@ -102,60 +113,50 @@ function TabManager() {
         })
     }
 
-    function onTabCreated(createdTab) {
-        return invokeOrInterceptHandler(function() {
-            console.log("OnCreated:");
-            console.log(createdTab);
+    this.onTabCreated = function(createdTab) {
+        console.log("OnCreated:");
+        console.log(createdTab);
 
-            tabsWithOnCreatedCalled[createdTab.id] = true;
+        tabsWithOnCreatedCalled[createdTab.id] = true;
 
-            if (!tabsCreatedBySynchronizer.hasOwnProperty(createdTab.id)) {
-                return synchronizerServer.addTab(
-                    createdTab.id,
-                    createdTab.index,
-                    createdTab.url, !createdTab.active);
-            }
-        });
+        if (!tabsCreatedBySynchronizer.hasOwnProperty(createdTab.id)) {
+            return synchronizerServer.addTab(
+                createdTab.id,
+                createdTab.index,
+                createdTab.url, !createdTab.active);
+        }
     }
 
-    function onTabRemoved(tabId) {
-        return invokeOrInterceptHandler(function() {
-            console.log("OnRemoved tabId: " + tabId);
+    this.onTabRemoved = function(tabId) {
+        console.log("OnRemoved tabId: " + tabId);
 
-            return synchronizerServer.closeTab(tabId);
-        });
+        return synchronizerServer.closeTab(tabId);
     }
 
-    function onTabUpdated(tabId, changeInfo, tabInfo) {
-        return invokeOrInterceptHandler(function() {
-            console.log("OnUpdated tabId " + tabId);
-            console.log("Changed attributes: ");
-            console.log(changeInfo);
-            console.log(tabInfo);
+    this.onTabUpdated = function(tabId, changeInfo, tabInfo) {
+        console.log("OnUpdated tabId " + tabId);
+        console.log("Changed attributes: ");
+        console.log(changeInfo);
+        console.log(tabInfo);
 
-            // When opening a tab with "Open Link in new tab" a update event with about:blank url
-            // is triggered before onCreated - it is useless as update with correct url comes later.
-            if (changeInfo.url && tabsWithOnCreatedCalled.hasOwnProperty(tabId)) {
-                return synchronizerServer.changeTabUrl(tabId, tabInfo.index, changeInfo.url);
-            }
-        });
+        // When opening a tab with "Open Link in new tab" a update event with about:blank url
+        // is triggered before onCreated - it is useless as update with correct url comes later.
+        if (changeInfo.url && tabsWithOnCreatedCalled.hasOwnProperty(tabId)) {
+            return synchronizerServer.changeTabUrl(tabId, tabInfo.index, changeInfo.url);
+        }
     }
 
-    function onTabMoved(tabId, moveInfo) {
-        return invokeOrInterceptHandler(function() {
-            console.log("onMoved tabId " + tabId);
-            console.log("Move Info: ");
-            console.log(moveInfo);
+    this.onTabMoved = function onTabMoved(tabId, moveInfo) {
+        console.log("onMoved tabId " + tabId);
+        console.log("Move Info: ");
+        console.log(moveInfo);
 
-            return synchronizerServer.moveTab(tabId, moveInfo.fromIndex, moveInfo.toIndex);
-        });
+        return synchronizerServer.moveTab(tabId, moveInfo.fromIndex, moveInfo.toIndex);
     }
 
-    function onTabActivated(activeInfo) {
-        return invokeOrInterceptHandler(function() {
-            console.log("OnActivated tabId: " + activeInfo.tabId);
+    this.onTabActivated = function onTabActivated(activeInfo) {
+        console.log("OnActivated tabId: " + activeInfo.tabId);
 
-            return synchronizerServer.activateTab(activeInfo.tabId);
-        });
+        return synchronizerServer.activateTab(activeInfo.tabId);
     }
 };

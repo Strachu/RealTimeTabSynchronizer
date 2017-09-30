@@ -36,6 +36,7 @@ zip -r9 -j Bin/Firefox/Desktop/RealTimeTabSynchronizer.xpi \
 	"Client/Firefox/Settings.html" \
 	"Client/Firefox/Settings.page.js" \
 	"Client/Firefox/Settings.js" \
+	Client/Firefox/Desktop/Overrides*.js \
 	
 echo "Building the server..."
 
