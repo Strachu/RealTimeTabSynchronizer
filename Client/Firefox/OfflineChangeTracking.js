@@ -4,39 +4,45 @@ var changeTracker = {
     // Used to queue the calls to storage.get(), without queing it was happening that 2 events
     // invoked storage.get() before first finished thus operating on the same array resulting in
     // loss of first event.
-    _pushChangeQueuePromise: Promise.resolve(),
+    // It's also used to wait for completion of all pending tasks when retrieving changes - important
+    // for reliable replaying of events after synchronization.
+    _lastActionPromise: Promise.resolve(),
 
-    addTab: function(tabIndex, url, createInBackground) {
+    addTab: function(tabId, tabIndex, url, createInBackground) {
         return changeTracker._pushChange({
             type: "createTab",
             dateTime: new Date(),
+            tabId: tabId,
             index: tabIndex,
             url: url,
             createInBackground: createInBackground
         });
     },
 
-    moveTab: function(tabIndex, newIndex) {
+    moveTab: function(tabId, tabIndex, newIndex) {
         return changeTracker._pushChange({
             type: "moveTab",
             dateTime: new Date(),
+            tabId: tabId,
             index: tabIndex,
             newIndex: newIndex
         });
     },
 
-    closeTab: function(tabIndex) {
+    closeTab: function(tabId, tabIndex) {
         return changeTracker._pushChange({
             type: "closeTab",
             dateTime: new Date(),
+            tabId: tabId,
             index: tabIndex
         });
     },
 
-    changeTabUrl: function(tabIndex, newUrl) {
+    changeTabUrl: function(tabId, tabIndex, newUrl) {
         return changeTracker._pushChange({
             type: "changeTabUrl",
             dateTime: new Date(),
+            tabId: tabId,
             index: tabIndex,
             newUrl: newUrl
         });
@@ -45,18 +51,46 @@ var changeTracker = {
     activateTab: function() {},
 
     getAllChanges: function() {
-        return new Promise(function(resolve) {
-            browser.storage.local.get(changeTracker.storageKey).then(function(storage) {
-                if (storage[changeTracker.storageKey]) {
-                    resolve(storage[changeTracker.storageKey]);
-                } else {
-                    changeTracker._initializeStorageToEmptyArray().then(resolve([]))
-                }
-            })
-        });
+        var body = function() {
+            return new Promise(function(resolve) {
+                browser.storage.local.get(changeTracker.storageKey).then(function(storage) {
+                    if (storage[changeTracker.storageKey]) {
+                        resolve(storage[changeTracker.storageKey]);
+                    } else {
+                        changeTracker._initializeStorageToEmptyArray().then(resolve([]))
+                    }
+                })
+            });
+        };
+
+        return changeTracker._lastActionPromise = changeTracker._lastActionPromise.then(body, body);
     },
 
-    clear: function() { return changeTracker._initializeStorageToEmptyArray() },
+    remove: function(changesToRemove) {
+        if (!(changesToRemove instanceof Array)) {
+            changesToRemove = [changesToRemove];
+        }
+
+        var body = function() {
+            return changeTracker._updateStorage(function(storage) {
+
+                var stringifiedChangesToRemove = changesToRemove.map(JSON.stringify);
+                var stringifiedStorage = storage.map(function(x) {
+                    return {
+                        stringifiedObject: JSON.stringify(x),
+                        original: x
+                    };
+                });
+
+                return stringifiedStorage.filter(function(x) {
+                        return !stringifiedChangesToRemove.includes(x.stringifiedObject);
+                    })
+                    .map(function(x) { return x.original; });
+            })
+        };
+
+        return changeTracker._lastActionPromise = changeTracker._lastActionPromise.then(body, body);
+    },
 
     _initializeStorageToEmptyArray: function() {
         return browser.storage.local.set({
@@ -65,22 +99,31 @@ var changeTracker = {
     },
 
     _pushChange: function(change) {
-        changeTracker._pushChangeQueuePromise = changeTracker._pushChangeQueuePromise.then(function() {
-            return new Promise(function(resolve) {
-                browser.storage.local.get(changeTracker.storageKey).then(function(storage) {
-                    if (!storage[changeTracker.storageKey]) {
-                        storage[changeTracker.storageKey] = [];
-                    }
-
-                    storage[changeTracker.storageKey].push(change);
-
-                    browser.storage.local.set({
-                        [changeTracker.storageKey]: storage[changeTracker.storageKey]
-                    }).then(resolve);
-                })
+        var body = function() {
+            return changeTracker._updateStorage(function(storage) {
+                storage.push(change);
+                return storage;
             });
-        })
 
-        return changeTracker._pushChangeQueuePromise;
+        };
+
+        return changeTracker._lastActionPromise = changeTracker._lastActionPromise.then(body, body);
+    },
+
+    _updateStorage: function(storageModifier) {
+        return new Promise(function(resolve) {
+            browser.storage.local.get(changeTracker.storageKey).then(function(storage) {
+                var changeArray = storage[changeTracker.storageKey];
+                if (!changeArray) {
+                    changeArray = [];
+                }
+
+                changeArray = storageModifier(changeArray);
+
+                browser.storage.local.set({
+                    [changeTracker.storageKey]: changeArray
+                }).then(resolve);
+            })
+        });
     }
 };

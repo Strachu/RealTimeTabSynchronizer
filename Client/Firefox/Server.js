@@ -1,6 +1,7 @@
 function SynchronizerServer(browserId) {
     var disconnectTimeoutHandle;
     var hub = $.connection.synchronizerHub;
+    var mHubQueuePromise = Promise.resolve();
     var currentServerUrl = "http://localhost:31711/";
     var initialized = false;
     var that = this;
@@ -26,30 +27,73 @@ function SynchronizerServer(browserId) {
     }
 
     var synchronizeWithServer = function() {
-        // TODO It's needed only for first time, optimize it for android?
-        var allTabsPromise = tabManager.getAllTabsWithUrls();
-        var allChangesPromise = changeTracker.getAllChanges();
-
-        // TODO There is a small probability of some events being generated between getAllChanges
-        // and setting initialized to true. These events will be lost, to prevent it they should
-        // be saved to a queue and replayed after successful synchronization.
-
-        return Promise.all([allTabsPromise, allChangesPromise])
-            .then(function(results) {
-                var allTabs = results[0];
-                var allChanges = results[1];
-
+        return tabManager.getAllTabsWithUrls().then(function(allTabs) {
+            return changeTracker.getAllChanges().then(function(allChanges) {
                 return hub.server.synchronize(browserId, allChanges, allTabs)
                     .done(function() {
-                        initialized = true;
+                        changeTracker.remove(allChanges)
+                            .then(function() {
+                                initialized = true;
 
-                        return changeTracker.clear();
+                                replayAllEventsFromOfflineChangeTracker();
+                            });
                     })
                     .fail(function(error) {
                         console.error("Failed to synchronize: " + error);
                         return $.connection.hub.stop();
                     })
 
+            });
+        });
+    }
+
+    var replayAllEventsFromOfflineChangeTracker = function() {
+        return changeTracker.getAllChanges()
+            .then(function(changesDoneDuringSynchronization) {
+                mHubQueuePromise = mHubQueuePromise.catch(function() {});
+                for (var i = 0; i < changesDoneDuringSynchronization.length; ++i) {
+                    (function(changeToReplay) {
+                        switch (changeToReplay.type) {
+                            case "createTab":
+                                mHubQueuePromise = mHubQueuePromise.then(function() {
+                                    return hub.server.addTab(
+                                        browserId,
+                                        changeToReplay.tabId,
+                                        changeToReplay.index,
+                                        changeToReplay.url,
+                                        changeToReplay.createInBackground)
+                                });
+                                break;
+                            case "moveTab":
+                                mHubQueuePromise = mHubQueuePromise.then(function() {
+                                    return hub.server.moveTab(
+                                        browserId,
+                                        changeToReplay.tabId,
+                                        changeToReplay.newIndex)
+                                });
+                                break;
+                            case "closeTab":
+                                mHubQueuePromise = mHubQueuePromise.then(function() {
+                                    return hub.server.closeTab(
+                                        browserId,
+                                        changeToReplay.tabId)
+                                });
+                                break;
+                            case "changeTabUrl":
+                                mHubQueuePromise = mHubQueuePromise.then(function() {
+                                    return hub.server.changeTabUrl(
+                                        browserId,
+                                        changeToReplay.tabId,
+                                        changeToReplay.newUrl)
+                                });
+                                break;
+                            default:
+                                throw new Error("Invalid change type: " + changeToReplay.type);
+                        }
+
+                        mHubQueuePromise.then(function() { changeTracker.remove(changeToReplay) });
+                    })(changesDoneDuringSynchronization[i]);
+                }
             });
     }
 
@@ -75,60 +119,86 @@ function SynchronizerServer(browserId) {
     }
 
     this.addTab = function(tabId, index, url, createInBackground) {
-        if (canTalkWithServer()) {
-            return hub.server.addTab(browserId, tabId, index, url, createInBackground)
-                .catch(function() {
-                    return changeTracker.addTab(index, url, createInBackground);
-                });
-        } else {
-            return changeTracker.addTab(index, url, createInBackground);
-        }
+        var body = function() {
+            if (canTalkWithServer()) {
+                return hub.server.addTab(browserId, tabId, index, url, createInBackground)
+                    .catch(function() {
+                        return changeTracker.addTab(tabId, index, url, createInBackground);
+                    });
+            } else {
+                return changeTracker.addTab(tabId, index, url, createInBackground);
+            }
+        };
+
+        return mHubQueuePromise = mHubQueuePromise.then(body, body);
     }
 
     this.changeTabUrl = function(tabId, tabIndex, url) {
-        if (canTalkWithServer()) {
-            return hub.server.changeTabUrl(browserId, tabId, url)
-                .catch(function() {
-                    return changeTracker.changeTabUrl(tabIndex, url);
-                });
-        } else {
-            return changeTracker.changeTabUrl(tabIndex, url);
-        }
+        var body = function() {
+            if (canTalkWithServer()) {
+                return hub.server.changeTabUrl(browserId, tabId, url)
+                    .catch(function() {
+                        return changeTracker.changeTabUrl(tabId, tabIndex, url);
+                    });
+            } else {
+                return changeTracker.changeTabUrl(tabId, tabIndex, url);
+            }
+        };
+
+        return mHubQueuePromise = mHubQueuePromise.then(body, body);
     }
 
     this.moveTab = function(tabId, fromIndex, newIndex) {
-        if (canTalkWithServer()) {
-            return hub.server.moveTab(browserId, tabId, newIndex)
-                .catch(function() {
-                    return changeTracker.moveTab(fromIndex, newIndex);
-                });
-        } else {
-            return changeTracker.moveTab(fromIndex, newIndex);
-        }
+        var body = function() {
+            if (canTalkWithServer()) {
+                return hub.server.moveTab(browserId, tabId, newIndex)
+                    .catch(function() {
+                        return changeTracker.moveTab(tabId, fromIndex, newIndex);
+                    });
+            } else {
+                return changeTracker.moveTab(tabId, fromIndex, newIndex);
+            }
+        };
+
+        return mHubQueuePromise = mHubQueuePromise.then(body, body);
     }
 
     this.closeTab = function(tabId) {
-        if (canTalkWithServer()) {
-            return hub.server.closeTab(browserId, tabId)
-                .catch(function() {
-                    return tabManager.getTabIndexByTabId(tabId).then(changeTracker.closeTab);
+        var body = function() {
+            if (canTalkWithServer()) {
+                return hub.server.closeTab(tabId, browserId, tabId)
+                    .catch(function() {
+                        return tabManager.getTabIndexByTabId(tabId).then(function(index) {
+                            changeTracker.closeTab(tabId, index);
+                        });
+                    });
+            } else {
+                return tabManager.getTabIndexByTabId(tabId).then(function(index) {
+                    changeTracker.closeTab(tabId, index);
                 });
-        } else {
-            return tabManager.getTabIndexByTabId(tabId)
-                .then(changeTracker.closeTab);
-        }
+            }
+        };
+
+        return mHubQueuePromise = mHubQueuePromise.then(body, body);
     }
 
     this.activateTab = function(tabId) {
-        if (canTalkWithServer()) {
-            return hub.server.activateTab(browserId, tabId)
-                .catch(function() {
-                    return tabManager.getTabIndexByTabId(tabId).then(changeTracker.activateTab);
+        var body = function() {
+            if (canTalkWithServer()) {
+                return hub.server.activateTab(browserId, tabId)
+                    .catch(function() {
+                        return tabManager.getTabIndexByTabId(tabId).then(function(index) {
+                            changeTracker.activateTab(tabId, index);
+                        });
+                    });
+            } else {
+                return tabManager.getTabIndexByTabId(tabId).then(function(index) {
+                    changeTracker.activateTab(tabId, index);
                 });
-        } else {
-            return tabManager.getTabIndexByTabId(tabId)
-                .then(changeTracker.activateTab);
-        }
+            }
+        };
+
+        return mHubQueuePromise = mHubQueuePromise.then(body, body);
     }
 
     var canTalkWithServer = function() {
