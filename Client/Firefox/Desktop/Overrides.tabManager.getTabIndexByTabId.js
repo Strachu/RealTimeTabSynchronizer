@@ -1,7 +1,7 @@
 (function() {
 
-    // It's not possible to get index of deleted tab in onRemoved() on Android.
-    // On desktop it seems to work just fine (on Firefox 52, on 55 mozilla screwed...).
+    // It's not possible to get index of deleted tab in onRemoved() in firefox 55.0
+    // Worked just fine in version 52.0
     var tabsStateBeforeRemoval = {};
     var saveTabsState = function() {
         return browser.tabs.query({}).then(function(tabs) {

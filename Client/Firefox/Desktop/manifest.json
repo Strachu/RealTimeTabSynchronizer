@@ -17,7 +17,7 @@
     "permissions": ["tabs", "storage"],
 
     "background": {
-        "scripts": ["jquery-3.2.1.min.js", "jquery.signalr-2.2.1.min.js", "signalr.hubs.js", "guidgenerator.js", "Helpers.js", "OfflineChangeTracking.js", "Server.js", "TabManager.js", "Init.js", "Settings.js", "Overrides.tabManager.getAllTabsWithUrls.js", "Overrides.tabManager.onTabCreated.js"]
+        "scripts": ["jquery-3.2.1.min.js", "jquery.signalr-2.2.1.min.js", "signalr.hubs.js", "guidgenerator.js", "Helpers.js", "OfflineChangeTracking.js", "Server.js", "TabManager.js", "Init.js", "Settings.js", "Overrides.tabManager.getTabIndexByTabId.js", "Overrides.tabManager.getAllTabsWithUrls.js", "Overrides.tabManager.onTabCreated.js"]
     },
 
     "options_ui": {
