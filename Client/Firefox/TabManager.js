@@ -22,6 +22,16 @@ function TabManager() {
     this.handlerQueuePromise = Promise.resolve();
     var tabsWithOnCreatedCalled = {};
 
+    // When opening browser with previous session no on created event is expected
+    Promise.resolve()
+        .then(function() {
+            return that.getAllTabsWithUrls().then(function(tabs) {
+                for (var i = 0; i < tabs.length; ++i) {
+                    tabsWithOnCreatedCalled[tabs[i].id] = true;
+                }
+            })
+        })
+
     // Temporary variables to prevent invoking server.addTab() for tabs created by addon.
     // capturedEventHandlers and createTabResultPendingCount are strictly needed only on
     // Android due to onCreated event firing first but is nonetheless left also on desktop
