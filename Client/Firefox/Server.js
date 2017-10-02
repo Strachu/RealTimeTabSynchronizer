@@ -28,21 +28,23 @@ function SynchronizerServer(browserId) {
 
     var synchronizeWithServer = function() {
         return tabManager.getAllTabsWithUrls().then(function(allTabs) {
-            return changeTracker.getAllChanges().then(function(allChanges) {
-                return hub.server.synchronize(browserId, allChanges, allTabs)
-                    .done(function() {
-                        changeTracker.remove(allChanges)
-                            .then(function() {
-                                initialized = true;
+            return tabManager.handlerQueuePromise.thenEvenIfError(function() {
+                return changeTracker.getAllChanges().then(function(allChanges) {
+                    return hub.server.synchronize(browserId, allChanges, allTabs)
+                        .done(function() {
+                            changeTracker.remove(allChanges)
+                                .then(function() {
+                                    initialized = true;
 
-                                replayAllEventsFromOfflineChangeTracker();
-                            });
-                    })
-                    .fail(function(error) {
-                        console.error("Failed to synchronize: " + error);
-                        return $.connection.hub.stop();
-                    })
+                                    replayAllEventsFromOfflineChangeTracker();
+                                });
+                        })
+                        .fail(function(error) {
+                            console.error("Failed to synchronize: " + error);
+                            return $.connection.hub.stop();
+                        })
 
+                });
             });
         });
     }

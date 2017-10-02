@@ -109,8 +109,19 @@ function TabManager() {
 
     this.getTabIndexByTabId = function(tabId) {
         return browser.tabs.get(tabId).then(function(tabInfo) {
-            return Promise.resolve(tabInfo.index);
-        })
+                return tabInfo.index;
+            })
+            .catch(function(error) {
+                // A hack to allow catching of tab closed event for a ghost tab in firefox 55.0.
+                // This tab is always created at then beginning and then immediately removed.
+                // No call to browser.tabs.query() can detect it.
+                // Caution: this tab id is used when browser is opened by clicking on a link.
+                if (tabId == 1) {
+                    return 0;
+                }
+
+                throw error;
+            });
     }
 
     this.onTabCreated = function(createdTab) {

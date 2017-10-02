@@ -11,6 +11,7 @@ zip -r9 -j Bin/Firefox/Android/RealTimeTabSynchronizer.xpi \
 	"Client/ThirdParty/guidgenerator.js" \
 	"Client/Firefox/Android/manifest.json" \
 	"Server/signalr.hubs.js" \
+	"Client/Firefox/Helpers.js" \
 	"Client/Firefox/Init.js" \
 	"Client/Firefox/OfflineChangeTracking.js" \
 	"Client/Firefox/Server.js" \
@@ -29,6 +30,7 @@ zip -r9 -j Bin/Firefox/Desktop/RealTimeTabSynchronizer.xpi \
 	"Client/ThirdParty/guidgenerator.js" \
 	"Client/Firefox/Desktop/manifest.json" \
 	"Server/signalr.hubs.js" \
+	"Client/Firefox/Helpers.js" \
 	"Client/Firefox/Init.js" \
 	"Client/Firefox/OfflineChangeTracking.js" \
 	"Client/Firefox/Server.js" \
