@@ -51,7 +51,7 @@ var changeTracker = {
     activateTab: function() {},
 
     getAllChanges: function() {
-        var body = function() {
+        return changeTracker._lastActionPromise = changeTracker._lastActionPromise.thenEvenIfError(function() {
             return new Promise(function(resolve) {
                 browser.storage.local.get(changeTracker.storageKey).then(function(storage) {
                     if (storage[changeTracker.storageKey]) {
@@ -61,9 +61,7 @@ var changeTracker = {
                     }
                 })
             });
-        };
-
-        return changeTracker._lastActionPromise = changeTracker._lastActionPromise.then(body, body);
+        });
     },
 
     remove: function(changesToRemove) {
@@ -71,7 +69,7 @@ var changeTracker = {
             changesToRemove = [changesToRemove];
         }
 
-        var body = function() {
+        return changeTracker._lastActionPromise = changeTracker._lastActionPromise.thenEvenIfError(function() {
             return changeTracker._updateStorage(function(storage) {
 
                 var stringifiedChangesToRemove = changesToRemove.map(JSON.stringify);
@@ -87,9 +85,7 @@ var changeTracker = {
                     })
                     .map(function(x) { return x.original; });
             })
-        };
-
-        return changeTracker._lastActionPromise = changeTracker._lastActionPromise.then(body, body);
+        });
     },
 
     _initializeStorageToEmptyArray: function() {
@@ -99,15 +95,13 @@ var changeTracker = {
     },
 
     _pushChange: function(change) {
-        var body = function() {
+        return changeTracker._lastActionPromise = changeTracker._lastActionPromise.thenEvenIfError(function() {
             return changeTracker._updateStorage(function(storage) {
                 storage.push(change);
                 return storage;
             });
 
-        };
-
-        return changeTracker._lastActionPromise = changeTracker._lastActionPromise.then(body, body);
+        });
     },
 
     _updateStorage: function(storageModifier) {

@@ -121,7 +121,7 @@ function SynchronizerServer(browserId) {
     }
 
     this.addTab = function(tabId, index, url, createInBackground) {
-        var body = function() {
+        return mHubQueuePromise = mHubQueuePromise.thenEvenIfError(function() {
             if (canTalkWithServer()) {
                 return hub.server.addTab(browserId, tabId, index, url, createInBackground)
                     .catch(function() {
@@ -130,13 +130,11 @@ function SynchronizerServer(browserId) {
             } else {
                 return changeTracker.addTab(tabId, index, url, createInBackground);
             }
-        };
-
-        return mHubQueuePromise = mHubQueuePromise.then(body, body);
+        });
     }
 
     this.changeTabUrl = function(tabId, tabIndex, url) {
-        var body = function() {
+        return mHubQueuePromise = mHubQueuePromise.thenEvenIfError(function() {
             if (canTalkWithServer()) {
                 return hub.server.changeTabUrl(browserId, tabId, url)
                     .catch(function() {
@@ -145,13 +143,11 @@ function SynchronizerServer(browserId) {
             } else {
                 return changeTracker.changeTabUrl(tabId, tabIndex, url);
             }
-        };
-
-        return mHubQueuePromise = mHubQueuePromise.then(body, body);
+        });
     }
 
     this.moveTab = function(tabId, fromIndex, newIndex) {
-        var body = function() {
+        return mHubQueuePromise = mHubQueuePromise.thenEvenIfError(function() {
             if (canTalkWithServer()) {
                 return hub.server.moveTab(browserId, tabId, newIndex)
                     .catch(function() {
@@ -160,13 +156,11 @@ function SynchronizerServer(browserId) {
             } else {
                 return changeTracker.moveTab(tabId, fromIndex, newIndex);
             }
-        };
-
-        return mHubQueuePromise = mHubQueuePromise.then(body, body);
+        });
     }
 
     this.closeTab = function(tabId) {
-        var body = function() {
+        return mHubQueuePromise = mHubQueuePromise.thenEvenIfError(function() {
             if (canTalkWithServer()) {
                 return hub.server.closeTab(tabId, browserId, tabId)
                     .catch(function() {
@@ -179,9 +173,7 @@ function SynchronizerServer(browserId) {
                     changeTracker.closeTab(tabId, index);
                 });
             }
-        };
-
-        return mHubQueuePromise = mHubQueuePromise.then(body, body);
+        });
     }
 
     this.activateTab = function(tabId) {

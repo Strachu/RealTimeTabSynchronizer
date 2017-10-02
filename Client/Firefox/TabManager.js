@@ -31,7 +31,7 @@ function TabManager() {
     var createTabResultPendingCount = 0;
     var invokeOrInterceptHandler = function(handler) {
         if (createTabResultPendingCount == 0) {
-            return that.handlerQueuePromise = that.handlerQueuePromise.then(handler, handler);
+            return that.handlerQueuePromise = that.handlerQueuePromise.thenEvenIfError(handler);
         } else {
             capturedEventHandlers.push(handler);
         }
