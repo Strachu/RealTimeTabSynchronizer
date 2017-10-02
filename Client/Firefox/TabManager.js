@@ -2,19 +2,19 @@ function TabManager() {
     var that = this;
 
     browser.tabs.onActivated.addListener(function(activeInfo) {
-        return invokeOrInterceptHandler(function() { that.onTabActivated(activeInfo); });
+        return invokeOrInterceptHandler(function() { return that.onTabActivated(activeInfo); });
     });
     browser.tabs.onCreated.addListener(function(createdTab) {
-        return invokeOrInterceptHandler(function() { that.onTabCreated(createdTab); });
+        return invokeOrInterceptHandler(function() { return that.onTabCreated(createdTab); });
     });
     browser.tabs.onRemoved.addListener(function(tabId) {
-        return invokeOrInterceptHandler(function() { that.onTabRemoved(tabId); });
+        return invokeOrInterceptHandler(function() { return that.onTabRemoved(tabId); });
     });
     browser.tabs.onUpdated.addListener(function(tabId, changeInfo, tabInfo) {
-        return invokeOrInterceptHandler(function() { that.onTabUpdated(tabId, changeInfo, tabInfo); });
+        return invokeOrInterceptHandler(function() { return that.onTabUpdated(tabId, changeInfo, tabInfo); });
     });
     browser.tabs.onMoved.addListener(function(tabId, moveInfo) {
-        return invokeOrInterceptHandler(function() { that.onTabMoved(tabId, moveInfo); });
+        return invokeOrInterceptHandler(function() { return that.onTabMoved(tabId, moveInfo); });
     });
 
     // Used to queue the event handlers, without queing the event handlers can finish out of order
