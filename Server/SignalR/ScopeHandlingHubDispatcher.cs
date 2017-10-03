@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
@@ -8,28 +9,29 @@ using Microsoft.Extensions.Options;
 
 namespace RealTimeTabSynchronizer.Server.SignalR
 {
-    public class ScopeHandlingHubDispatcher : HubDispatcher
+	public class ScopeHandlingHubDispatcher : HubDispatcher
 	{
-        private readonly IServiceProvider mServiceProvider;
+		private readonly IServiceProvider mServiceProvider;
+		private static readonly AsyncLocal<IServiceScope> mCurrentScope = new AsyncLocal<IServiceScope>();
 
 		public ScopeHandlingHubDispatcher(IServiceProvider serviceProvider, IOptions<SignalROptions> options)
-            : base(options)
+						: base(options)
 		{
-            mServiceProvider = serviceProvider;
+			mServiceProvider = serviceProvider;
 		}
 
-        public static IServiceScope CurrentScope { get; private set; }
+		public static IServiceScope CurrentScope => mCurrentScope.Value;
 
-        protected async override Task OnReceived(HttpRequest request, string connectionId, string data)
-        {
-            using(var scope = mServiceProvider.CreateScope())
-            {
-                CurrentScope = scope;
+		protected async override Task OnReceived(HttpRequest request, string connectionId, string data)
+		{
+			using (var scope = mServiceProvider.CreateScope())
+			{
+				mCurrentScope.Value = scope;
 
-                await base.OnReceived(request, connectionId, data);
-                
-                CurrentScope = null;
-            }
-        }
+				await base.OnReceived(request, connectionId, data);
+
+				mCurrentScope.Value = null;
+			}
+		}
 	}
 }
