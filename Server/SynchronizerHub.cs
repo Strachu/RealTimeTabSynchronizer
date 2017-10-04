@@ -586,12 +586,16 @@ namespace RealTimeTabSynchronizer.Server
 
 		public override Task OnConnected()
 		{
-			var connectionId = Context.ConnectionId;
-			var browserId = Guid.Parse(Context.QueryString["browserId"]);
-
-			mConnectionRepository.AddConnection(browserId, connectionId);
+			SaveConnection();
 
 			return base.OnConnected();
+		}
+
+		public override Task OnReconnected()
+		{
+			SaveConnection();
+
+			return base.OnReconnected();
 		}
 
 		public override Task OnDisconnected(bool stopCalled)
@@ -599,6 +603,14 @@ namespace RealTimeTabSynchronizer.Server
 			mConnectionRepository.RemoveConnection(Context.ConnectionId);
 
 			return base.OnDisconnected(stopCalled);
+		}
+
+		private void SaveConnection()
+		{
+			var connectionId = Context.ConnectionId;
+			var browserId = Guid.Parse(Context.QueryString["browserId"]);
+
+			mConnectionRepository.AddConnection(browserId, connectionId);
 		}
 
 		private async Task ForEveryOtherConnectedBrowserWithTab(

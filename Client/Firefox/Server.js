@@ -17,8 +17,6 @@ function SynchronizerServer(browserId) {
             .done(function() {
                 console.log("Connected to the server at " + currentServerUrl + ".");
 
-                $.connection.hub.qs = {};
-
                 return synchronizeWithServer();
             })
             .fail(function() {
