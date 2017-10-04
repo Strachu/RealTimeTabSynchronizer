@@ -199,36 +199,47 @@ function SynchronizerServer(browserId) {
             initialized);
     }
 
+    var mTabManagerCallQueue = Promise.resolve();
     hub.client.addTab = function(requestId, tabIndex, url, createInBackground) {
-        console.log("addTab(" + tabIndex + ", " + url + ", " + createInBackground);
+        return mTabManagerCallQueue = mTabManagerCallQueue.thenEvenIfError(function() {
+            console.log("addTab(" + tabIndex + ", " + url + ", " + createInBackground);
 
-        return tabManager.addTab(tabIndex, url, createInBackground).then(function(tabInfo) {
-            // TODO What if we lose connection here?
-            return hub.server.acknowledgeTabAdded(requestId, tabInfo.tabId, tabInfo.index);
+            return tabManager.addTab(tabIndex, url, createInBackground).then(function(tabInfo) {
+                // TODO What if we lose connection here?
+                return hub.server.acknowledgeTabAdded(requestId, tabInfo.tabId, tabInfo.index);
+            });
         });
     };
 
     hub.client.moveTab = function(tabId, newIndex) {
-        console.log("moveTab(" + tabId + ", " + newIndex + ")");
+        return mTabManagerCallQueue = mTabManagerCallQueue.thenEvenIfError(function() {
+            console.log("moveTab(" + tabId + ", " + newIndex + ")");
 
-        return tabManager.moveTab(tabId, newIndex);
+            return tabManager.moveTab(tabId, newIndex);
+        });
     };
 
     hub.client.closeTab = function(tabId) {
-        console.log("closeTab(" + tabId + ")");
+        return mTabManagerCallQueue = mTabManagerCallQueue.thenEvenIfError(function() {
+            console.log("closeTab(" + tabId + ")");
 
-        return tabManager.closeTab(tabId);
+            return tabManager.closeTab(tabId);
+        });
     };
 
     hub.client.changeTabUrl = function(tabId, newUrl) {
-        console.log("changeTabUrl(" + tabId + ", " + newUrl + ")");
+        return mTabManagerCallQueue = mTabManagerCallQueue.thenEvenIfError(function() {
+            console.log("changeTabUrl(" + tabId + ", " + newUrl + ")");
 
-        return tabManager.changeTabUrl(tabId, newUrl);
+            return tabManager.changeTabUrl(tabId, newUrl);
+        });
     };
 
     hub.client.activateTab = function(tabId) {
-        console.log("activateTab(" + tabId + ")");
+        return mTabManagerCallQueue = mTabManagerCallQueue.thenEvenIfError(function() {
+            console.log("activateTab(" + tabId + ")");
 
-        return tabManager.activateTab(tabId, newUrl);
+            return tabManager.activateTab(tabId, newUrl);
+        });
     };
 };
