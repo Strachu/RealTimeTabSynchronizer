@@ -160,7 +160,7 @@ function SynchronizerServer(browserId) {
     this.closeTab = function(tabId) {
         return mHubQueuePromise = mHubQueuePromise.thenEvenIfError(function() {
             if (canTalkWithServer()) {
-                return hub.server.closeTab(tabId, browserId, tabId)
+                return hub.server.closeTab(browserId, tabId)
                     .catch(function() {
                         return tabManager.getTabIndexByTabId(tabId).then(function(index) {
                             changeTracker.closeTab(tabId, index);
