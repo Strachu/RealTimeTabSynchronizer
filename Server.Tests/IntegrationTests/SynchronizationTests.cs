@@ -519,6 +519,38 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 			AssertTabDataCorrect(tabs.Single(x => x.Index == 1), tabId: 3, url: "http://www.tab2.com");
 		}
 
+		// At least Firefox Android assigns ids starting at 0 which can be problematic when ids of closed
+		// tabs are negated, as 0 negated is still 0 thus making a tabs with duplicated ids before
+		// they are removed from the server.
+		[Test]
+		public async Task BrowserTabsIdAreUpdatedCorrectly_WhenFirstTabWithIdEqualToZeroHasBeenClosedAndTheZeroIdHasBeenAssignedToDifferentBrowser()
+		{
+			mDbContext.BrowserTabs.Single(x => x.Index == 0).BrowserTabId = 0;
+			mDbContext.SaveChanges();
+
+			// 012 -> 12
+			await mSynchronizer.Synchronize(mBrowserId,
+				changesSinceLastConnection: new object[]
+				{
+					JObject.Parse(@"{
+						type: ""closeTab"",
+						dateTime: ""2017-01-01 10:02:00"",
+						index: 0,						
+					}")
+				},
+				currentlyOpenTabs: new TabData[]
+				{
+					new TabData() { Id = 0, Index = 0, Url = "http://www.tab1.com" },
+					new TabData() { Id = 1, Index = 1, Url = "http://www.tab2.com" },
+				});
+
+			var tabs = mDbContext.BrowserTabs.AsNoTracking().Include(x => x.ServerTab).ToList();
+
+			Assert.That(tabs.Count, Is.EqualTo(2));
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 0), tabId: 0, url: "http://www.tab1.com");
+			AssertTabDataCorrect(tabs.Single(x => x.Index == 1), tabId: 1, url: "http://www.tab2.com");
+		}
+
 		[Test]
 		public async Task BrowserTabsIdAreUpdatedCorrectly_WhenTabHasBeenMoved()
 		{

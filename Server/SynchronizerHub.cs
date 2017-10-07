@@ -483,7 +483,7 @@ namespace RealTimeTabSynchronizer.Server
 				if (newIndex == null)
 				{
 					// Will be removed in the next step but id needs to be unique.
-					tabOnServer.BrowserTabId = -tabOnServer.BrowserTabId;
+					tabOnServer.BrowserTabId = -tabOnServer.BrowserTabId - 1;
 				}
 				else
 				{
