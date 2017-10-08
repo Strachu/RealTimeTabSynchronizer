@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json.Linq;
 using RealTimeTabSynchronizer.Server.Acknowledgments;
 using RealTimeTabSynchronizer.Server.Browsers;
@@ -38,6 +39,7 @@ namespace RealTimeTabSynchronizer.Server
 		private readonly IIndexCalculator mIndexCalculator;
 		private readonly IDiffCalculator mServerStateDiffCalculator;
 		private readonly IChangeListOptimizer mChangeListOptimizer;
+		private readonly IInitializeNewBrowserCommand mInitializeNewBrowserCommand;
 
 		public SynchronizerHub(
 			ILogger<SynchronizerHub> logger,
@@ -53,7 +55,8 @@ namespace RealTimeTabSynchronizer.Server
 			ITabActionDeserializer tabActionDeserializer,
 			IIndexCalculator indexCalculator,
 			IDiffCalculator serverStateDiffCalculator, 
-			IChangeListOptimizer changeListOptimizer)
+			IChangeListOptimizer changeListOptimizer, 
+			IInitializeNewBrowserCommand initializeNewBrowserCommand)
 		{
 			mLogger = logger;
 			mUoW = dbContext;
@@ -69,6 +72,7 @@ namespace RealTimeTabSynchronizer.Server
 			mIndexCalculator = indexCalculator;
 			mServerStateDiffCalculator = serverStateDiffCalculator;
 			mChangeListOptimizer = changeListOptimizer;
+			mInitializeNewBrowserCommand = initializeNewBrowserCommand;
 		}
 
 		public async Task AddTab(Guid browserId, int tabId, int index, string url, bool createInBackground)
@@ -292,90 +296,13 @@ namespace RealTimeTabSynchronizer.Server
 					var browser = await mBrowserRepository.GetById(browserId);
 					if (browser == null)
 					{
-						var browserName = Context.Request.Headers["User-Agent"];
-						mBrowserRepository.Add(new Browser
+						var browserInfo = new Browser
 						{
 							Id = browserId,
-							Name = browserName
-						});
+							Name = Context.Request.Headers["User-Agent"]
+						};
 
-						var tabsAlreadyOnServer = (await mTabDataRepository.GetAllTabs()).ToList();
-						var tabsAlreadyOnServerByUrl = tabsAlreadyOnServer.GroupBy(x => x.Url, StringComparer.OrdinalIgnoreCase).ToDictionary(x => x.Key, x => x.First(), StringComparer.OrdinalIgnoreCase);
-						var newTabs = currentlyOpenTabs.Where(x => !tabsAlreadyOnServerByUrl.ContainsKey(x.Url)).ToList();
-
-						mLogger.LogDebug($"Tabs already on server: {tabsAlreadyOnServer.Count}");
-						mLogger.LogDebug($"Tabs already on server ignoring duplicates: {tabsAlreadyOnServerByUrl.Count}");
-						mLogger.LogDebug($"Browser tabs: {currentlyOpenTabs.Count}");
-						mLogger.LogDebug($"New tabs: {newTabs.Count}");
-
-						var allServerTabs = new List<TabData>(tabsAlreadyOnServer);
-						for (int i = 0; i < newTabs.Count; ++i)
-						{
-							var newTab = await mTabService.AddTab(tabsAlreadyOnServer.Count + i, newTabs[i].Url, createInBackground: true);
-
-							await mUoW.SaveChangesAsync(); // Retrieve automatically assigned id from database
-
-							var connectedBrowsers = mConnectionRepository.GetConnectedBrowsers();
-							foreach (var otherBrowser in connectedBrowsers.Where(x => x.BrowserId != browserId))
-							{
-								await mBrowserService.AddTab(
-									otherBrowser.BrowserId,
-									newTab.Id,
-									newTab.Index.Value,
-									newTab.Url,
-									createInBackground: true);
-							}
-
-							allServerTabs.Add(newTab);
-						}
-
-						var tabsSortedByIndex = currentlyOpenTabs.OrderBy(x => x.Index).ToList();
-						var tabsToUpdate = Math.Min(allServerTabs.Count, tabsSortedByIndex.Count);
-						for (int i = 0; i < tabsToUpdate; ++i)
-						{
-							var oldTabValue = tabsSortedByIndex[i];
-							var newTabValue = allServerTabs[i];
-
-							if (!oldTabValue.Url.Equals(newTabValue.Url, StringComparison.OrdinalIgnoreCase))
-							{
-								// TODO This does not throw when client has disconnected!
-								await Clients.Caller.ChangeTabUrl(oldTabValue.Id, newTabValue.Url);
-							}
-
-							var clientSideTab = new BrowserTab()
-							{
-								BrowserId = browserId,
-								BrowserTabId = oldTabValue.Id,
-								Index = i,
-								Url = newTabValue.Url,
-								ServerTab = allServerTabs[i]
-							};
-							mBrowserTabRepository.Add(clientSideTab);
-						}
-
-						await mUoW.SaveChangesAsync(); // Retrieve automatically assigned ids from database
-
-						for (int i = currentlyOpenTabs.Count; i < allServerTabs.Count; ++i)
-						{
-							var serverTab = allServerTabs[i];
-							await mBrowserService.AddTab(
-								browserId,
-								serverTab.Id,
-								serverTab.Index.Value,
-								serverTab.Url,
-								createInBackground: true);
-						}
-
-						// Test Case:
-						// New browser is added with duplicate tabs which already exists on server
-						// The duplicated tab is not added to server but remaining open tabs are not closed
-						// TODO Convert test case to unit test
-						for (int i = currentlyOpenTabs.Count - 1; i >= allServerTabs.Count; --i)
-						{
-							var openTab = tabsSortedByIndex[i];
-
-							await Clients.Caller.CloseTab(openTab.Id);
-						}
+						await mInitializeNewBrowserCommand.ExecuteAsync(Clients.Caller, browserInfo, currentlyOpenTabs);
 					}
 					else
 					{
