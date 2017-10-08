@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using RealTimeTabSynchronizer.Server.DiffCalculation.Dto;
 
@@ -29,92 +28,105 @@ namespace RealTimeTabSynchronizer.Server.DiffCalculation
                 {
                     continue;
                 }
-                
-                var nextChanges = optimizedChanges.SkipWhile(x => x.OriginalChange != change.OriginalChange).Skip(1).ToList();
-                switch (change.UpdatedChange)
+
+                if (change.OriginalChange is TabCreatedDto || change.OriginalChange is TabUrlChangedDto)
                 {
-                    case TabCreatedDto tabCreated:
-                    {
-                        var currentIndex = change.OriginalChange.TabIndex;
-                        var hasBeenRemovedCompletely = mIndexCalculator.GetTabIndexAfterChanges(currentIndex, nextChanges.Select(x => x.OriginalChange)) == null;
+                    var nextChanges = optimizedChanges.SkipWhile(x => x.OriginalChange != change.OriginalChange).Skip(1).ToList();
 
-                        foreach (var nextChange in nextChanges)
-                        {
-                            if (currentIndex == nextChange.OriginalChange.TabIndex)
-                            {
-                                var asUrlChange = nextChange.OriginalChange as TabUrlChangedDto;
-                                if (asUrlChange != null)
-                                {
-                                    tabCreated.Url = asUrlChange.NewUrl;
-                                    nextChange.ShouldBeRemoved = true;
-                                }
-
-                                if (hasBeenRemovedCompletely)
-                                {
-                                    nextChange.ShouldBeRemoved = true;
-                                }
-                            }
-                            else if(hasBeenRemovedCompletely)
-                            {
-                                if (currentIndex < nextChange.OriginalChange.TabIndex)
-                                {
-                                    nextChange.UpdatedChange.TabIndex--;
-                                }
-                                
-                                var asMoveChange = nextChange.OriginalChange as TabMovedDto;
-                                if (asMoveChange != null && (currentIndex < asMoveChange.NewIndex || (currentIndex == asMoveChange.NewIndex && asMoveChange.NewIndex > asMoveChange.TabIndex)))
-                                {
-                                    var updatedMoveChange = (TabMovedDto) nextChange.UpdatedChange;
-                                    updatedMoveChange.NewIndex--;
-                                }   
-                            }
-
-                            var indexAfterApplyingNextChange =
-                                mIndexCalculator.GetTabIndexAfterChanges(currentIndex, new[] {nextChange.OriginalChange});
-                            if (indexAfterApplyingNextChange == null)
-                            {
-                                change.ShouldBeRemoved = true;
-                                break;
-                            }
-
-                            currentIndex = indexAfterApplyingNextChange.Value;
-                        }
-                        break;
-                    }
-
-                    case TabUrlChangedDto tabUrlChanged:
-                    {
-                        var currentIndex = change.OriginalChange.TabIndex;
-
-                        foreach (var nextChange in nextChanges)
-                        {
-                            if (currentIndex == nextChange.OriginalChange.TabIndex)
-                            {
-                                var asUrlChange = nextChange.OriginalChange as TabUrlChangedDto;
-                                if (asUrlChange != null)
-                                {
-                                    tabUrlChanged.NewUrl = asUrlChange.NewUrl;
-                                    nextChange.ShouldBeRemoved = true;
-                                }
-                            }
-
-                            var indexAfterApplyingNextChange =
-                                mIndexCalculator.GetTabIndexAfterChanges(currentIndex, new[] {nextChange.OriginalChange});
-                            if (indexAfterApplyingNextChange == null)
-                            {
-                                break;
-                            }
-
-                            currentIndex = indexAfterApplyingNextChange.Value;
-                        }
-                        break;
-                    }
+                    OptimizeChange(change, nextChanges);
                 }
 
                 if (!change.ShouldBeRemoved)
                 {
                     yield return change.UpdatedChange;
                 }
+            }
+        }
+
+        private void OptimizeChange(ChangeWithState change, IReadOnlyCollection<ChangeWithState> nextChanges)
+        {
+            var currentIndex = change.OriginalChange.TabIndex;
+            
+            switch (change.UpdatedChange)
+            {
+                case TabCreatedDto tabCreated:
+                {
+                    var hasBeenRemovedCompletely = mIndexCalculator.GetTabIndexAfterChanges(currentIndex, nextChanges.Select(x => x.OriginalChange)) == null;
+
+                    foreach (var nextChange in nextChanges)
+                    {
+                        if (currentIndex == nextChange.OriginalChange.TabIndex)
+                        {
+                            var asUrlChange = nextChange.OriginalChange as TabUrlChangedDto;
+                            if (asUrlChange != null)
+                            {
+                                tabCreated.Url = asUrlChange.NewUrl;
+                                nextChange.ShouldBeRemoved = true;
+                            }
+
+                            if (hasBeenRemovedCompletely)
+                            {
+                                nextChange.ShouldBeRemoved = true;
+                            }
+                        }
+                        else if (hasBeenRemovedCompletely)
+                        {
+                            AdjustIndicesAfterCompletelyDiscardingEventsRelatedToTabCreatedAndRemovedInSingleSession(currentIndex, nextChange);
+                        }
+
+                        var indexAfterApplyingNextChange = mIndexCalculator.GetTabIndexAfterChanges(currentIndex, new[] {nextChange.OriginalChange});
+                        if (indexAfterApplyingNextChange == null)
+                        {
+                            change.ShouldBeRemoved = true;
+                            break;
+                        }
+
+                        currentIndex = indexAfterApplyingNextChange.Value;
+                    }
+                    break;
+                }
+
+                case TabUrlChangedDto tabUrlChanged:
+                {
+                    foreach (var nextChange in nextChanges)
+                    {
+                        if (currentIndex == nextChange.OriginalChange.TabIndex)
+                        {
+                            var asUrlChange = nextChange.OriginalChange as TabUrlChangedDto;
+                            if (asUrlChange != null)
+                            {
+                                tabUrlChanged.NewUrl = asUrlChange.NewUrl;
+                                nextChange.ShouldBeRemoved = true;
+                            }
+                        }
+
+                        var indexAfterApplyingNextChange = mIndexCalculator.GetTabIndexAfterChanges(currentIndex, new[] {nextChange.OriginalChange});
+                        if (indexAfterApplyingNextChange == null)
+                        {
+                            break;
+                        }
+
+                        currentIndex = indexAfterApplyingNextChange.Value;
+                    }
+                    break;
+                }
+            }
+        }
+
+        private void AdjustIndicesAfterCompletelyDiscardingEventsRelatedToTabCreatedAndRemovedInSingleSession(int currentIndex, ChangeWithState nextChange)
+        {
+            if (currentIndex < nextChange.OriginalChange.TabIndex)
+            {
+                nextChange.UpdatedChange.TabIndex--;
+            }
+
+            var asMoveChange = nextChange.OriginalChange as TabMovedDto;
+            if (asMoveChange != null && (currentIndex < asMoveChange.NewIndex ||
+                                         (currentIndex == asMoveChange.NewIndex &&
+                                          asMoveChange.NewIndex > asMoveChange.TabIndex)))
+            {
+                var updatedMoveChange = (TabMovedDto) nextChange.UpdatedChange;
+                updatedMoveChange.NewIndex--;
             }
         }
 
