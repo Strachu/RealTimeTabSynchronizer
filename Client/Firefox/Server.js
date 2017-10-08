@@ -206,7 +206,9 @@ function SynchronizerServer(browserId) {
 
             return tabManager.addTab(tabIndex, url, createInBackground).then(function(tabInfo) {
                 // TODO What if we lose connection here?
-                return hub.server.acknowledgeTabAdded(requestId, tabInfo.tabId, tabInfo.index);
+                return mHubQueuePromise = mHubQueuePromise.thenEvenIfError(function() {
+                    return hub.server.acknowledgeTabAdded(requestId, tabInfo.tabId, tabInfo.index)
+                });
             });
         });
     };
