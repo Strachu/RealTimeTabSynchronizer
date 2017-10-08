@@ -31,6 +31,8 @@ namespace RealTimeTabSynchronizer.Server
 
 		public async Task<TabData> AddTab(int tabIndex, string url, bool createInBackground)
 		{
+			mLogger.LogDebug($"AddTab({tabIndex}, {url}, {createInBackground})");
+
 			if (url.Equals("about:newtab", StringComparison.OrdinalIgnoreCase))
 			{
 				// TODO this should be done in firefox addon as it is specific to a browser.
@@ -50,13 +52,15 @@ namespace RealTimeTabSynchronizer.Server
 
 		public async Task<TabData> AddTab(Guid browserId, int tabId, int tabIndex, string url, bool createInBackground)
 		{
+			mLogger.LogDebug($"AddTab({browserId}, {tabId}, {tabIndex}, {url}, {createInBackground})");
+
 			var newTab = await AddTab(tabIndex, url, createInBackground);
-			
+
 			await mBrowserTabRepository.IncrementTabIndices(
 				browserId,
 				new TabRange(fromIndexInclusive: tabIndex),
 				incrementBy: 1);
-			
+
 			var browserTab = new BrowserTab
 			{
 				BrowserId = browserId,
@@ -73,6 +77,8 @@ namespace RealTimeTabSynchronizer.Server
 
 		public async Task<TabData> MoveTab(Guid browserId, int tabId, int newTabIndex)
 		{
+			mLogger.LogDebug($"MoveTab({browserId}, {tabId}, {newTabIndex})");
+
 			var tab = await mBrowserTabRepository.GetByBrowserTabId(browserId, tabId);
 			if (tab == null)
 			{
@@ -126,7 +132,7 @@ namespace RealTimeTabSynchronizer.Server
 						new TabRange(newTabIndex, oldTabIndex - 1),
 						incrementBy: 1);
 				}
-				
+
 				tab.Index = newTabIndex;
 			}
 
@@ -135,6 +141,8 @@ namespace RealTimeTabSynchronizer.Server
 
 		public async Task<TabData> CloseTab(Guid browserId, int tabId)
 		{
+			mLogger.LogDebug($"CloseTab({browserId}, {tabId})");
+
 			var tab = await mBrowserTabRepository.GetByBrowserTabId(browserId, tabId);
 			if (tab == null)
 			{
@@ -164,12 +172,14 @@ namespace RealTimeTabSynchronizer.Server
 				browserId,
 				new TabRange(fromIndexInclusive: tab.Index + 1),
 				incrementBy: -1);
-			
+
 			return tab.ServerTab;
 		}
 
 		public async Task<TabData> ChangeTabUrl(Guid browserId, int tabId, string newUrl)
 		{
+			mLogger.LogDebug($"ChangeTabUrl({browserId}, {tabId}, {newUrl})");
+
 			var tab = await mBrowserTabRepository.GetByBrowserTabId(browserId, tabId);
 			if (tab == null)
 			{
@@ -177,7 +187,7 @@ namespace RealTimeTabSynchronizer.Server
 			}
 
 			tab.Url = newUrl;
-			
+
 			if (tab.ServerTab.Url.Equals(newUrl, StringComparison.OrdinalIgnoreCase))
 			{
 				return null;
@@ -189,6 +199,8 @@ namespace RealTimeTabSynchronizer.Server
 
 		public async Task<TabData> ActivateTab(Guid browserId, int tabId)
 		{
+			mLogger.LogDebug($"ActivateTab({browserId}, {tabId})");
+
 			var tab = await mBrowserTabRepository.GetByBrowserTabId(browserId, tabId);
 			if (tab == null)
 			{
