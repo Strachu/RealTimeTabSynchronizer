@@ -162,7 +162,12 @@ function TabManager() {
 
         // When opening a tab with "Open Link in new tab" a update event with about:blank url
         // is triggered before onCreated - it is useless as update with correct url comes later.
-        if (changeInfo.url && tabsWithOnCreatedCalled.hasOwnProperty(tabId)) {
+        // ChangeTabUrl with about:blank url are ignored as they are pointless and are triggered
+        // on Firefox Desktop when first time activating a tab and then updating it with original
+        // url...
+        if (changeInfo.url &&
+            changeInfo.url !== "about:blank" &&
+            tabsWithOnCreatedCalled.hasOwnProperty(tabId)) {
             return synchronizerServer.changeTabUrl(tabId, tabInfo.index, changeInfo.url);
         }
     }
