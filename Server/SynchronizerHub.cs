@@ -54,8 +54,8 @@ namespace RealTimeTabSynchronizer.Server
 			IPendingRequestService pendingRequestService,
 			ITabActionDeserializer tabActionDeserializer,
 			IIndexCalculator indexCalculator,
-			IDiffCalculator serverStateDiffCalculator, 
-			IChangeListOptimizer changeListOptimizer, 
+			IDiffCalculator serverStateDiffCalculator,
+			IChangeListOptimizer changeListOptimizer,
 			IInitializeNewBrowserCommand initializeNewBrowserCommand)
 		{
 			mLogger = logger;
@@ -538,10 +538,10 @@ namespace RealTimeTabSynchronizer.Server
 			var connectedBrowsers = mConnectionRepository.GetConnectedBrowsers();
 			foreach (var browser in connectedBrowsers.Where(x => x.BrowserId != currentBrowserId))
 			{
-				var browserTabId = await mTabIdMapper.GetBrowserTabIdForServerTabId(serverTabId);
+				var browserTabId = await mTabIdMapper.GetBrowserTabIdForServerTabId(browser.BrowserId, serverTabId);
 				if (browserTabId == null)
 				{
-					mLogger.LogWarning($"Browser {browser.BrowserId} did not have tab {serverTabId}.");
+					mLogger.LogWarning($"Browser {browser.BrowserId} does not have a tab with id = {serverTabId}.");
 					continue;
 				}
 

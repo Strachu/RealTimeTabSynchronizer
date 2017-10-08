@@ -15,10 +15,10 @@ namespace RealTimeTabSynchronizer.Server.TabData_.ClientToServerIdMapping
 			mDbContext = dbContext;
 		}
 
-		public Task<int?> GetBrowserTabIdForServerTabId(int serverTabId)
+		public Task<int?> GetBrowserTabIdForServerTabId(Guid browserId, int serverTabId)
 		{
 			return mDbContext.BrowserTabs
-				.Where(x => x.ServerTabId == serverTabId)
+				.Where(x => x.BrowserId == browserId && x.ServerTabId == serverTabId)
 				.Select(x => (int?)x.BrowserTabId)
 				.SingleOrDefaultAsync();
 		}

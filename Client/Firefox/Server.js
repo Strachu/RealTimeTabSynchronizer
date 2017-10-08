@@ -239,7 +239,7 @@ function SynchronizerServer(browserId) {
         return mTabManagerCallQueue = mTabManagerCallQueue.thenEvenIfError(function() {
             console.log("activateTab(" + tabId + ")");
 
-            return tabManager.activateTab(tabId, newUrl);
+            return tabManager.activateTab(tabId);
         });
     };
 };
