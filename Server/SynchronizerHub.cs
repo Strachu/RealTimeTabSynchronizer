@@ -541,7 +541,7 @@ namespace RealTimeTabSynchronizer.Server
 				var browserTabId = await mTabIdMapper.GetBrowserTabIdForServerTabId(browser.BrowserId, serverTabId);
 				if (browserTabId == null)
 				{
-					mLogger.LogWarning($"Browser {browser.BrowserId} does not have a tab with id = {serverTabId}.");
+					mLogger.LogDebug($"Browser {browser.BrowserId} does not have a tab with id = {serverTabId}.");
 					continue;
 				}
 
