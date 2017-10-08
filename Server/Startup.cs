@@ -77,7 +77,7 @@ namespace RealTimeTabSynchronizer.Server
 			services.AddSingleton<IIndexCalculator, IndexCalculator>();
 			services.AddSingleton<IDiffCalculator, DiffCalculator>();
 			services.AddSingleton<IChangeListOptimizer, ChangeListOptimizer>();
-			services.AddSingleton<IInitializeNewBrowserCommand, InitializeNewBrowserCommand>();
+			services.AddScoped<IInitializeNewBrowserCommand, InitializeNewBrowserCommand>();
 
 			services.AddSingleton<Configurator>();
 			services.AddSingleton<IModelBuildingService>(x => new ModelBuildingService(x, typeof(Startup).GetTypeInfo().Assembly));
