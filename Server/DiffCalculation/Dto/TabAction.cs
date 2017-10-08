@@ -8,5 +8,10 @@ namespace RealTimeTabSynchronizer.Server.DiffCalculation.Dto
 		// without index it would be impossible to correlate tabs on server and on the browser.
 		public int TabIndex { get; set; }
 		public DateTime ActionTime { get; set; }
+
+		public virtual TabAction Clone()
+		{
+			return (TabAction)base.MemberwiseClone();
+		}
 	}
 }

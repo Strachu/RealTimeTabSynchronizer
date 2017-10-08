@@ -403,6 +403,47 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 			Assert.That(tabs.Single(x => x.Index == 3).Url, Is.EquivalentTo("http://www.tab4.com"));
 		}
 
+		[Test]
+		public async Task WhenTabIsAddedAfterATabWhichHasBeenCreatedAndRemovedInTheSameDisconnectedSession_TheIndexOfTheTabIsCorrect()
+		{
+			// 012 -> 0123 -> 01234 -> 0124
+			await mSynchronizer.Synchronize(mBrowserId,
+				changesSinceLastConnection: new object[]
+				{
+					JObject.Parse(@"{
+						type: ""createTab"",
+						dateTime: ""2017-01-01 10:00:00"",
+						index: 3,
+						url: ""http://www.tab2.com"",
+						createInBackground: 0						
+					}"),
+					JObject.Parse(@"{
+						type: ""createTab"",
+						dateTime: ""2017-01-01 11:00:00"",
+						index: 4,
+						url: ""http://www.tab4.com"",
+						createInBackground: 0						
+					}"),
+					JObject.Parse(@"{
+						type: ""closeTab"",
+						dateTime: ""2017-01-01 12:00:00"",
+						index: 3,			
+					}"),
+				},
+				currentlyOpenTabs: new TabData[]
+				{
+					new TabData() { Id = 0, Index = 0, Url = "http://www.tab0.com" },
+					new TabData() { Id = 1, Index = 1, Url = "http://www.tab1.com" },
+					new TabData() { Id = 2, Index = 2, Url = "http://www.tab2.com" },
+					new TabData() { Id = 4, Index = 3, Url = "http://www.tab4.com" },
+				});
+
+			var tabs = mDbContext.BrowserTabs.AsNoTracking().ToList();
+			var addedTab = tabs.Single(x => x.BrowserTabId == 4);
+
+			Assert.That(addedTab.Index, Is.EqualTo(3));
+		}
+
 		/// <summary>
 		/// At least Firefox resets the tab ids during every restart of the browser.
 		/// </summary>

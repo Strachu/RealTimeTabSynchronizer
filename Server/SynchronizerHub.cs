@@ -37,6 +37,7 @@ namespace RealTimeTabSynchronizer.Server
 		private readonly ITabActionDeserializer mTabActionDeserializer;
 		private readonly IIndexCalculator mIndexCalculator;
 		private readonly IDiffCalculator mServerStateDiffCalculator;
+		private readonly IChangeListOptimizer mChangeListOptimizer;
 
 		public SynchronizerHub(
 			ILogger<SynchronizerHub> logger,
@@ -49,9 +50,10 @@ namespace RealTimeTabSynchronizer.Server
 			IBrowserTabRepository browserTabRepository,
 			IBrowserService browserService,
 			IPendingRequestService pendingRequestService,
-			ITabActionDeserializer tabActionDeserializer, 
-			IIndexCalculator indexCalculator, 
-			IDiffCalculator serverStateDiffCalculator)
+			ITabActionDeserializer tabActionDeserializer,
+			IIndexCalculator indexCalculator,
+			IDiffCalculator serverStateDiffCalculator, 
+			IChangeListOptimizer changeListOptimizer)
 		{
 			mLogger = logger;
 			mUoW = dbContext;
@@ -66,6 +68,7 @@ namespace RealTimeTabSynchronizer.Server
 			mTabActionDeserializer = tabActionDeserializer;
 			mIndexCalculator = indexCalculator;
 			mServerStateDiffCalculator = serverStateDiffCalculator;
+			mChangeListOptimizer = changeListOptimizer;
 		}
 
 		public async Task AddTab(Guid browserId, int tabId, int index, string url, bool createInBackground)
@@ -377,8 +380,8 @@ namespace RealTimeTabSynchronizer.Server
 					else
 					{
 						var browserChanges = changesSinceLastConnection.Select(mTabActionDeserializer.Deserialize).ToList();
-
-						// TODO Optimize the changes
+						
+						browserChanges = mChangeListOptimizer.GetOptimizedList(browserChanges).ToList();
 
 						var browserStateOnLastUpdate = (await mBrowserTabRepository.GetAllBrowsersTabs(browserId)).ToList();
 
@@ -394,15 +397,11 @@ namespace RealTimeTabSynchronizer.Server
 						foreach (var change in browserChanges)
 						{
 							var tabId = GetTabIdOfChangedTab(change, browserChanges, oldIdsByIndex, newIdsByIndex);
-							if (tabId == null)
-							{
-								continue;
-							}
 
 							switch (change)
 							{
 								case TabCreatedDto dto:
-									var serverTab = await mTabService.AddTab(browserId, tabId.Value, dto.TabIndex, dto.Url, dto.CreateInBackground);
+									var serverTab = await mTabService.AddTab(browserId, tabId, dto.TabIndex, dto.Url, dto.CreateInBackground);
 
 									// Again... EF is annoying with it's ids... switch over to guids?
 									await mUoW.SaveChangesAsync(); // Retrieve automatically assigned ids from database
@@ -420,7 +419,7 @@ namespace RealTimeTabSynchronizer.Server
 									break;
 
 								case TabUrlChangedDto dto:
-									var changedServerTab = await mTabService.ChangeTabUrl(browserId, tabId.Value, dto.NewUrl);
+									var changedServerTab = await mTabService.ChangeTabUrl(browserId, tabId, dto.NewUrl);
 									if (changedServerTab != null)
 									{
 										await ForEveryOtherConnectedBrowserWithTab(browserId, changedServerTab.Id,
@@ -432,7 +431,7 @@ namespace RealTimeTabSynchronizer.Server
 									break;
 
 								case TabMovedDto dto:
-									var movedServerTab = await mTabService.MoveTab(browserId, tabId.Value, dto.NewIndex);
+									var movedServerTab = await mTabService.MoveTab(browserId, tabId, dto.NewIndex);
 
 									await ForEveryOtherConnectedBrowserWithTab(browserId, movedServerTab.Id,
 										async (browserTabId, connectionInfo) =>
@@ -442,7 +441,7 @@ namespace RealTimeTabSynchronizer.Server
 									break;
 
 								case TabClosedDto dto:
-									var closedServerTab = await mTabService.CloseTab(browserId, tabId.Value);
+									var closedServerTab = await mTabService.CloseTab(browserId, tabId);
 									if (closedServerTab != null)
 									{
 										await ForEveryOtherConnectedBrowserWithTab(browserId, closedServerTab.Id,
@@ -526,29 +525,25 @@ namespace RealTimeTabSynchronizer.Server
 					.Where(x => x.BrowserTab != null)
 					.ToDictionary(x => x.Index, x => x.BrowserTab.BrowserTabId);
 				var browserTabId = GetTabIdOfChangedTab(change, serverSideChanges, idsByOldIndex, idsByNewIndex);
-				if (browserTabId == null)
-				{
-					throw new InvalidOperationException("BrowserTabId should not be null for actions other than add tab");
-				}
 
 				switch (change)
 				{
 					case TabUrlChangedDto dto:
-						await Clients.Caller.ChangeTabUrl(browserTabId.Value, dto.NewUrl);
+						await Clients.Caller.ChangeTabUrl(browserTabId, dto.NewUrl);
 						break;
 
 					case TabMovedDto dto:
-						await Clients.Caller.MoveTab(browserTabId.Value, dto.NewIndex);
+						await Clients.Caller.MoveTab(browserTabId, dto.NewIndex);
 						break;
 
 					case TabClosedDto dto:
-						await Clients.Caller.CloseTab(browserTabId.Value);
+						await Clients.Caller.CloseTab(browserTabId);
 						break;
 				}
 			}
 		}
 
-		private int? GetTabIdOfChangedTab(
+		private int GetTabIdOfChangedTab(
 			TabAction change,
 			IReadOnlyCollection<TabAction> allChanges,
 			IDictionary<int, int> idsByIndexBeforeChanges,
@@ -568,17 +563,12 @@ namespace RealTimeTabSynchronizer.Server
 				}
 			}
 
-			// TODO Unit test for it - crashed before
-			if (change is TabCreatedDto)
-			{
-				return null;
-			}
-
 			var previousIndex = mIndexCalculator.GetTabIndexBeforeChanges(change.TabIndex, allChanges.TakeWhile(x => x != change));
-			if (previousIndex == null)
+			if (change is TabCreatedDto || previousIndex == null)
 			{
-				// Could be added and removed before update -> TODO should be optimized out
-				return null;
+				// The tab has been added and removed before synchronization. It should be optimized out by the change optimizer.
+				throw new InvalidOperationException("This should not happen! GetTabIdOfChangedTab got tab created and removed in the same session. Optimizer seems" +
+				                                    "to not be working correctly.");
 			}
 
 			return idsByIndexBeforeChanges[previousIndex.Value];
