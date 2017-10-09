@@ -131,10 +131,10 @@ function SynchronizerServer(browserId) {
         });
     }
 
-    this.changeTabUrl = function(tabId, tabIndex, url) {
+    this.changeTabUrl = function(tabId, tabIndex, url, isCausedByServer) {
         return mHubQueuePromise = mHubQueuePromise.thenEvenIfError(function() {
             if (canTalkWithServer()) {
-                return hub.server.changeTabUrl(browserId, tabId, url)
+                return hub.server.changeTabUrl(browserId, tabId, url, isCausedByServer)
                     .catch(function() {
                         return changeTracker.changeTabUrl(tabId, tabIndex, url);
                     });
@@ -144,10 +144,10 @@ function SynchronizerServer(browserId) {
         });
     }
 
-    this.moveTab = function(tabId, fromIndex, newIndex) {
+    this.moveTab = function(tabId, fromIndex, newIndex, isCausedByServer) {
         return mHubQueuePromise = mHubQueuePromise.thenEvenIfError(function() {
             if (canTalkWithServer()) {
-                return hub.server.moveTab(browserId, tabId, newIndex)
+                return hub.server.moveTab(browserId, tabId, newIndex, isCausedByServer)
                     .catch(function() {
                         return changeTracker.moveTab(tabId, fromIndex, newIndex);
                     });
@@ -174,10 +174,10 @@ function SynchronizerServer(browserId) {
         });
     }
 
-    this.activateTab = function(tabId) {
+    this.activateTab = function(tabId, isCausedByServer) {
         var body = function() {
             if (canTalkWithServer()) {
-                return hub.server.activateTab(browserId, tabId)
+                return hub.server.activateTab(browserId, tabId, isCausedByServer)
                     .catch(function() {
                         return tabManager.getTabIndexByTabId(tabId).then(function(index) {
                             changeTracker.activateTab(tabId, index);

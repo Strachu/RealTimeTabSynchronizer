@@ -85,7 +85,7 @@
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["AcknowledgeTabAdded"], $.makeArray(arguments)));
              },
 
-            activateTab: function (browserId, tabId) {
+            activateTab: function (browserId, tabId, isAck) {
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["ActivateTab"], $.makeArray(arguments)));
              },
 
@@ -93,7 +93,7 @@
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["AddTab"], $.makeArray(arguments)));
              },
 
-            changeTabUrl: function (browserId, tabId, newUrl) {
+            changeTabUrl: function (browserId, tabId, newUrl, isAck) {
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["ChangeTabUrl"], $.makeArray(arguments)));
              },
 
@@ -101,7 +101,7 @@
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["CloseTab"], $.makeArray(arguments)));
              },
 
-            moveTab: function (browserId, tabId, newIndex) {
+            moveTab: function (browserId, tabId, newIndex, isAck) {
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["MoveTab"], $.makeArray(arguments)));
              },
 
@@ -113,7 +113,7 @@
         return proxies;
     };
 
-    signalR.hub = $.hubConnection("/signalr", { useDefaultPath: false });
+    signalR.hub = $.hubConnection("/SignalR", { useDefaultPath: false });
     $.extend(signalR, signalR.hub.createHubProxies());
 
 }(window.jQuery, window));

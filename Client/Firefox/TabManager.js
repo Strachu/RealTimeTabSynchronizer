@@ -34,8 +34,8 @@ function TabManager() {
 
     // Temporary variables to prevent invoking server.addTab() for tabs created by addon.
     // capturedEventHandlers and createTabResultPendingCount are strictly needed only on
-    // Android due to onCreated event firing first but is nonetheless left also on desktop
-    // in case Mozilla will change the order to be consistent.
+    // Android due to onCreated event firing first (not anymore in 56.0) but is nonetheless
+    // left also on desktop in case Mozilla will change the order to be consistent.
     var tabsCreatedBySynchronizer = {}
     var capturedEventHandlers = [];
     var createTabResultPendingCount = 0;
@@ -96,13 +96,26 @@ function TabManager() {
         capturedEventHandlers = [];
     }
 
+    // Needed to notify the server whether the event is the result of a call from server
+    // to break cycles in updating by not propagating events created by the server to other
+    // browsers.
+    var eventsCausedByServerCount = {
+        onUrlChanged: 0,
+        onTabMoved: 0,
+        onTabActivated: 0
+    };
+
     this.moveTab = function(tabId, index) {
         // TODO The browser can refuse to move the tab, needs to do something with it?
-        return browser.tabs.move(tabId, { index: index });
+        return browser.tabs.move(tabId, { index: index }).then(function() {
+            eventsCausedByServerCount.onTabMoved++;
+        });
     };
 
     this.changeTabUrl = function(tabId, newUrl) {
-        return browser.tabs.update(tabId, { url: newUrl });
+        return browser.tabs.update(tabId, { url: newUrl }).then(function() {
+            eventsCausedByServerCount.onUrlChanged++;
+        });
     };
 
     this.closeTab = function(tabId) {
@@ -110,7 +123,9 @@ function TabManager() {
     };
 
     this.activateTab = function(tabId) {
-        return browser.tabs.update(tabId, { active: true })
+        return browser.tabs.update(tabId, { active: true }).then(function() {
+            eventsCausedByServerCount.onTabActivated++;
+        });
     };
 
     this.getAllTabsWithUrls = function() {
@@ -168,7 +183,15 @@ function TabManager() {
         if (changeInfo.url &&
             changeInfo.url !== "about:blank" &&
             tabsWithOnCreatedCalled.hasOwnProperty(tabId)) {
-            return synchronizerServer.changeTabUrl(tabId, tabInfo.index, changeInfo.url);
+
+            var isCausedByServer = false;
+            if (eventsCausedByServerCount.onUrlChanged > 0) {
+                eventsCausedByServerCount.onUrlChanged--;
+                isCausedByServer = true;
+            }
+
+            console.log("OnUpdated for url " + changeInfo.url + " for tab " + tabId);
+            return synchronizerServer.changeTabUrl(tabId, tabInfo.index, changeInfo.url, isCausedByServer);
         }
     }
 
@@ -177,12 +200,24 @@ function TabManager() {
         console.log("Move Info: ");
         console.log(moveInfo);
 
-        return synchronizerServer.moveTab(tabId, moveInfo.fromIndex, moveInfo.toIndex);
+        var isCausedByServer = false;
+        if (eventsCausedByServerCount.onTabMoved > 0) {
+            eventsCausedByServerCount.onTabMoved--;
+            isCausedByServer = true;
+        }
+
+        return synchronizerServer.moveTab(tabId, moveInfo.fromIndex, moveInfo.toIndex, isCausedByServer);
     }
 
     this.onTabActivated = function onTabActivated(activeInfo) {
         console.log("OnActivated tabId: " + activeInfo.tabId);
 
-        return synchronizerServer.activateTab(activeInfo.tabId);
+        var isCausedByServer = false;
+        if (eventsCausedByServerCount.onTabActivated > 0) {
+            eventsCausedByServerCount.onTabActivated--;
+            isCausedByServer = true;
+        }
+
+        return synchronizerServer.activateTab(activeInfo.tabId, isCausedByServer);
     }
 };

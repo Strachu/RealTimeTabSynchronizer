@@ -123,7 +123,6 @@ namespace RealTimeTabSynchronizer.Server
 			await @lock.WaitAsync();
 			try
 			{
-
 				using (var transaction = await mUoW.Database.BeginTransactionAsync())
 				{
 					var requestData = await mPendingRequestService.GetRequestDataByPendingRequestId<AddTabRequestData>(requestId);
@@ -158,9 +157,9 @@ namespace RealTimeTabSynchronizer.Server
 			mLogger.LogInformation("Finished handling the acknowledge for adding request.");
 		}
 
-		public async Task MoveTab(Guid browserId, int tabId, int newIndex)
+		public async Task MoveTab(Guid browserId, int tabId, int newIndex, bool isAck = false)
 		{
-			mLogger.LogInformation($"Moving a tab {tabId} at {newIndex}.");
+			mLogger.LogInformation($"Moving a tab {tabId} at {newIndex}, IsAck = {isAck}.");
 
 			await @lock.WaitAsync();
 			try
@@ -169,11 +168,14 @@ namespace RealTimeTabSynchronizer.Server
 				{
 					var movedServerTab = await mTabService.MoveTab(browserId, tabId, newIndex);
 
-					await ForEveryOtherConnectedBrowserWithTab(browserId, movedServerTab.Id,
-						async (browserTabId, connectionInfo) =>
-						{
-							await Clients.Client(connectionInfo.ConnectionId).MoveTab(browserTabId, newIndex);
-						});
+					if (!isAck)
+					{
+						await ForEveryOtherConnectedBrowserWithTab(browserId, movedServerTab.Id,
+							async (browserTabId, connectionInfo) =>
+							{
+								await Clients.Client(connectionInfo.ConnectionId).MoveTab(browserTabId, newIndex);
+							});
+					}
 
 					await mUoW.SaveChangesAsync();
 					transaction.Commit();
@@ -218,9 +220,9 @@ namespace RealTimeTabSynchronizer.Server
 			mLogger.LogInformation("Finished closing a tab.");
 		}
 
-		public async Task ChangeTabUrl(Guid browserId, int tabId, string newUrl)
+		public async Task ChangeTabUrl(Guid browserId, int tabId, string newUrl, bool isAck = false)
 		{
-			mLogger.LogInformation($"Changing tab {tabId} url to {newUrl}.");
+			mLogger.LogInformation($"Changing tab {tabId} url to {newUrl}, IsAck = {isAck}.");
 
 			await @lock.WaitAsync();
 			try
@@ -228,7 +230,7 @@ namespace RealTimeTabSynchronizer.Server
 				using (var transaction = await mUoW.Database.BeginTransactionAsync())
 				{
 					var changedServerTab = await mTabService.ChangeTabUrl(browserId, tabId, newUrl);
-					if (changedServerTab != null)
+					if (changedServerTab != null && !isAck)
 					{
 						await ForEveryOtherConnectedBrowserWithTab(browserId, changedServerTab.Id,
 							async (browserTabId, connectionInfo) =>
@@ -249,9 +251,14 @@ namespace RealTimeTabSynchronizer.Server
 			mLogger.LogInformation("Finished changing a url of tab.");
 		}
 
-		public async Task ActivateTab(Guid browserId, int tabId)
+		public async Task ActivateTab(Guid browserId, int tabId, bool isAck = false)
 		{
-			mLogger.LogInformation($"Activating tab {tabId}.");
+			mLogger.LogInformation($"Activating tab {tabId}, IsAck = {isAck}.");
+
+			if (isAck)
+			{
+				return;
+			}
 
 			await @lock.WaitAsync();
 			try
@@ -307,7 +314,7 @@ namespace RealTimeTabSynchronizer.Server
 					else
 					{
 						var browserChanges = changesSinceLastConnection.Select(mTabActionDeserializer.Deserialize).ToList();
-						
+
 						browserChanges = mChangeListOptimizer.GetOptimizedList(browserChanges).ToList();
 
 						var browserStateOnLastUpdate = (await mBrowserTabRepository.GetAllBrowsersTabs(browserId)).ToList();
@@ -495,7 +502,7 @@ namespace RealTimeTabSynchronizer.Server
 			{
 				// The tab has been added and removed before synchronization. It should be optimized out by the change optimizer.
 				throw new InvalidOperationException("This should not happen! GetTabIdOfChangedTab got tab created and removed in the same session. Optimizer seems" +
-				                                    "to not be working correctly.");
+																						"to not be working correctly.");
 			}
 
 			return idsByIndexBeforeChanges[previousIndex.Value];
