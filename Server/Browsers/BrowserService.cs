@@ -25,7 +25,7 @@ namespace RealTimeTabSynchronizer.Server.Browsers
 
 		public async Task AddTab(Guid browserId, int serverTabId, int index, string url, bool createInBackground)
 		{
-			var connectionInfo = mConnectionRepository.GetByBrowserId(browserId);
+			var connectionInfo = await mConnectionRepository.GetByBrowserId(browserId);
 			if (connectionInfo == null)
 			{
 				throw new InvalidOperationException($"The browser {browserId} is not connected.");

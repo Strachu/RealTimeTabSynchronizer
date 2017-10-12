@@ -89,7 +89,7 @@ namespace RealTimeTabSynchronizer.Server
 
 					// TODO Think about crash reliability here... does failing to send a request for one browser
 					// have to cancel adding the tab to server? The original browser will already have this added.
-					var connectedBrowsers = mConnectionRepository.GetConnectedBrowsers();
+					var connectedBrowsers = await mConnectionRepository.GetConnectedBrowsers();
 					foreach (var browser in connectedBrowsers.Where(x => x.BrowserId != browserId))
 					{
 						await mBrowserService.AddTab(
@@ -340,7 +340,7 @@ namespace RealTimeTabSynchronizer.Server
 									// Again... EF is annoying with it's ids... switch over to guids?
 									await mUoW.SaveChangesAsync(); // Retrieve automatically assigned ids from database
 
-									var connectedBrowsers = mConnectionRepository.GetConnectedBrowsers();
+									var connectedBrowsers = await mConnectionRepository.GetConnectedBrowsers();
 									foreach (var otherBrowser in connectedBrowsers.Where(x => x.BrowserId != browserId))
 									{
 										await mBrowserService.AddTab(
@@ -542,7 +542,7 @@ namespace RealTimeTabSynchronizer.Server
 			int serverTabId,
 			 Func<int, BrowserConnectionInfo, Task> action)
 		{
-			var connectedBrowsers = mConnectionRepository.GetConnectedBrowsers();
+			var connectedBrowsers = await mConnectionRepository.GetConnectedBrowsers();
 			foreach (var browser in connectedBrowsers.Where(x => x.BrowserId != currentBrowserId))
 			{
 				var browserTabId = await mTabIdMapper.GetBrowserTabIdForServerTabId(browser.BrowserId, serverTabId);

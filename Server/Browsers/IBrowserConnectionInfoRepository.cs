@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace RealTimeTabSynchronizer.Server.Browsers
 {
@@ -8,7 +9,7 @@ namespace RealTimeTabSynchronizer.Server.Browsers
 		void AddConnection(Guid browserId, string connectionId);
 		void RemoveConnection(string connectionId);
 
-		IEnumerable<BrowserConnectionInfo> GetConnectedBrowsers();
-		BrowserConnectionInfo GetByBrowserId(Guid browserId);
+		Task<IEnumerable<BrowserConnectionInfo>> GetConnectedBrowsers();
+		Task<BrowserConnectionInfo> GetByBrowserId(Guid browserId);
 	}
 }

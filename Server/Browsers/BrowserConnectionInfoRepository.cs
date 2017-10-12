@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace RealTimeTabSynchronizer.Server.Browsers
 {
@@ -9,6 +10,13 @@ namespace RealTimeTabSynchronizer.Server.Browsers
 	{
 		private readonly ConcurrentDictionary<string, BrowserConnectionInfo> mConnectionInfoByConnectionId =
 			new ConcurrentDictionary<string, BrowserConnectionInfo>();
+
+		private readonly IBrowserRepository mBrowserRepository;
+
+		public BrowserConnectionInfoRepository(IBrowserRepository browserRepository)
+		{
+			mBrowserRepository = browserRepository;
+		}
 
 		public void AddConnection(Guid browserId, string connectionId)
 		{
@@ -26,14 +34,30 @@ namespace RealTimeTabSynchronizer.Server.Browsers
 			mConnectionInfoByConnectionId.TryRemove(connectionId, out _);
 		}
 
-		public IEnumerable<BrowserConnectionInfo> GetConnectedBrowsers()
+		public async Task<IEnumerable<BrowserConnectionInfo>> GetConnectedBrowsers()
 		{
-			return mConnectionInfoByConnectionId.Values;
+			var temp = mConnectionInfoByConnectionId.Values
+				.Select(x => new { Value = x, Browser = mBrowserRepository.GetById(x.BrowserId) });
+
+			await Task.WhenAll(temp.Select(x => x.Browser));
+
+			return temp.Where(x => x.Browser.Result != null).Select(x => x.Value);
 		}
 
-		public BrowserConnectionInfo GetByBrowserId(Guid browserId)
+		public async Task<BrowserConnectionInfo> GetByBrowserId(Guid browserId)
 		{
-			return mConnectionInfoByConnectionId.Values.SingleOrDefault(x => x.BrowserId == browserId);
+			var connection = mConnectionInfoByConnectionId.Values.SingleOrDefault(x => x.BrowserId == browserId);
+			if (connection == null)
+			{
+				return null;
+			}
+
+			if (await mBrowserRepository.GetById(browserId) == null)
+			{
+				return null;
+			}
+
+			return connection;
 		}
 	}
 }
