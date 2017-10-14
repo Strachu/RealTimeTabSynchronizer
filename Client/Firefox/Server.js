@@ -205,9 +205,11 @@ function SynchronizerServer(browserId) {
             console.log("addTab(" + tabIndex + ", " + url + ", " + createInBackground);
 
             return tabManager.addTab(tabIndex, url, createInBackground).then(function(tabInfo) {
-                // TODO What if we lose connection here?
-                return mHubQueuePromise = mHubQueuePromise.thenEvenIfError(function() {
-                    return hub.server.acknowledgeTabAdded(requestId, tabInfo.tabId, tabInfo.index)
+                return tabManager.handlerQueuePromise.thenEvenIfError(function() {
+                    // TODO What if we lose connection here?
+                    return mHubQueuePromise = mHubQueuePromise.thenEvenIfError(function() {
+                        return hub.server.acknowledgeTabAdded(requestId, tabInfo.tabId, tabInfo.index)
+                    });
                 });
             });
         });
