@@ -4,5 +4,10 @@ namespace RealTimeTabSynchronizer.Server.DiffCalculation.Dto
 	{
 		public string Url { get; set; }
 		public bool CreateInBackground { get; set; }
+
+		public override string ToString()
+		{
+			return $"[TabCreated]: {base.ToString()}, {nameof(Url)}: {Url}";
+		}
 	}
 }

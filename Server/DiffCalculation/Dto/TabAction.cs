@@ -13,5 +13,10 @@ namespace RealTimeTabSynchronizer.Server.DiffCalculation.Dto
 		{
 			return (TabAction)base.MemberwiseClone();
 		}
+
+		public override string ToString()
+		{
+			return $"{nameof(TabIndex)}: {TabIndex}";
+		}
 	}
 }

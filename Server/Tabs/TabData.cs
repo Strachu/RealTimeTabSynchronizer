@@ -67,5 +67,10 @@ namespace RealTimeTabSynchronizer.Server.TabData_
 		{
 			return Id.GetHashCode();
 		}
+
+		public override string ToString()
+		{
+			return $"{nameof(Id)}: {Id}, {nameof(Index)}: {Index}, {nameof(Url)}: {Url}";
+		}
 	}
 }

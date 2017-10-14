@@ -46,7 +46,9 @@ namespace RealTimeTabSynchronizer.Server
 
 		public async Task ExecuteAsync(IBrowserApi browser, Browser browserInfo, IReadOnlyCollection<TabData> currentlyOpenTabs)
 		{
-			mLogger.LogDebug($"InitializeNewBrowser(browserInfo: ({browserInfo}))");
+			mLogger.LogDebug(
+				$"InitializeNewBrowser(browserInfo: ({browserInfo}), currentlyOpenTabs: " + Environment.NewLine +
+				$"{String.Join(";\n", currentlyOpenTabs)})");
 
 			mBrowserRepository.Add(new Browser
 			{

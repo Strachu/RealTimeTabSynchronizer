@@ -315,7 +315,18 @@ namespace RealTimeTabSynchronizer.Server
 					{
 						var browserChanges = changesSinceLastConnection.Select(mTabActionDeserializer.Deserialize).ToList();
 
+						mLogger.LogDebug(
+							$"Synchronize(browserId: ({browserId}), " +
+							$"browserChanges: " + Environment.NewLine +
+							$"{String.Join(";\n", browserChanges)}, " + Environment.NewLine +
+							$"currentlyOpenTabs: " + Environment.NewLine +
+							$"{String.Join(";\n", currentlyOpenTabs)})");
+
 						browserChanges = mChangeListOptimizer.GetOptimizedList(browserChanges).ToList();
+
+						mLogger.LogDebug(
+							$"Changes have been optimized to: " + Environment.NewLine +
+							$"{String.Join(";\n", browserChanges)}");
 
 						var browserStateOnLastUpdate = (await mBrowserTabRepository.GetAllBrowsersTabs(browserId)).ToList();
 
