@@ -59,7 +59,24 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 
 			Assert.That(connectedBrowsers.Select(x => x.BrowserId), Is.EquivalentTo(new[] { initializedBrowserId }));
 		}
+		
+		[Test]
+		public async Task GetConnectedBrowsers_IteratingTheResultDoesNotThrowExceptionWhenNewConnectionHasComeInMeanTime()
+		{
+			mConnectionRepository.AddConnection(Guid.NewGuid(), Guid.NewGuid().ToString());
+			mConnectionRepository.AddConnection(Guid.NewGuid(), Guid.NewGuid().ToString());
 
+			Assert.DoesNotThrowAsync(async () =>
+			{
+				var connectedBrowsers = await mConnectionRepository.GetConnectedBrowsers();
+
+				foreach (var browser in connectedBrowsers)
+				{
+					mConnectionRepository.AddConnection(Guid.NewGuid(), Guid.NewGuid().ToString());
+				}
+			});
+		}
+		
 		[Test]
 		public async Task GetByBrowserId_ReturnsNullWhenTheBrowserHasNotBeenInitialized()
 		{
