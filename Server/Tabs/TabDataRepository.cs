@@ -91,11 +91,15 @@ namespace RealTimeTabSynchronizer.Server.TabData_
 				x.Index <= range.ToIndexInclusive);
 			foreach (var tab in affectedTabsInCache)
 			{
+				var originalModificationTime = tab.LastModificationTime;
+
 				tab.Index += incrementBy;
 
 				// Do not issue update statements for performance reasons
 				mContext.Entry(tab).Property(x => x.Index).OriginalValue = tab.Index;
 				mContext.Entry(tab).Property(x => x.Index).IsModified = false;
+
+				tab.LastModificationTime = originalModificationTime;
 			}
 		}
 	}
