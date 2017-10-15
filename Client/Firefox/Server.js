@@ -102,7 +102,10 @@ function SynchronizerServer(browserId) {
         disconnectTimeoutHandle = setTimeout(that.connect, 10000);
     });
 
-    $.connection.hub.reconnected(synchronizeWithServer);
+    $.connection.hub.reconnected(function() {
+        initialized = false;
+        synchronizeWithServer();
+    });
 
     this.changeServerUrl = function(newServerUrl) {
         if (newServerUrl != currentServerUrl) {
