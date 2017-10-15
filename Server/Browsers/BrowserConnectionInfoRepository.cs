@@ -51,16 +51,31 @@ namespace RealTimeTabSynchronizer.Server.Browsers
 
 		public async Task<IEnumerable<BrowserConnectionInfo>> GetConnectedBrowsers()
 		{
-			var temp = mConnections.Select(x => new { Value = x, Browser = mBrowserRepository.GetById(x.BrowserId) }).ToList();
+			IList<BrowserConnectionInfo> result;
+			lock (mConnections)
+			{
+				result = mConnections.ToList();
+			}
 
-			await Task.WhenAll(temp.Select(x => x.Browser));
+			foreach (var connection in result.ToList())
+			{
+				if (await mBrowserRepository.GetById(connection.BrowserId) == null)
+				{
+					result.Remove(connection);
+				}
+			}
 
-			return temp.Where(x => x.Browser.Result != null).Select(x => x.Value);
+			return result;
 		}
 
 		public async Task<BrowserConnectionInfo> GetByBrowserId(Guid browserId)
 		{
-			var connection = mConnections.SingleOrDefault(x => x.BrowserId == browserId);
+			BrowserConnectionInfo connection;
+			lock (mConnections)
+			{
+				connection = mConnections.SingleOrDefault(x => x.BrowserId == browserId);
+			}
+
 			if (connection == null)
 			{
 				return null;
