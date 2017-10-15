@@ -8,8 +8,7 @@ namespace RealTimeTabSynchronizer.Server.Browsers
 {
 	public class BrowserConnectionInfoRepository : IBrowserConnectionInfoRepository
 	{
-		private readonly ConcurrentDictionary<string, BrowserConnectionInfo> mConnectionInfoByConnectionId =
-			new ConcurrentDictionary<string, BrowserConnectionInfo>();
+		private readonly IList<BrowserConnectionInfo> mConnections = new List<BrowserConnectionInfo>();
 
 		private readonly IBrowserRepository mBrowserRepository;
 
@@ -20,24 +19,39 @@ namespace RealTimeTabSynchronizer.Server.Browsers
 
 		public void AddConnection(Guid browserId, string connectionId)
 		{
-			var connectionInfo = new BrowserConnectionInfo
+			lock (mConnections)
 			{
-				BrowserId = browserId,
-				ConnectionId = connectionId
-			};
-
-			mConnectionInfoByConnectionId.TryAdd(connectionId, connectionInfo);
+				var browserConnection = mConnections.SingleOrDefault(x => x.BrowserId == browserId);
+				if (browserConnection == null)
+				{
+					mConnections.Add(new BrowserConnectionInfo
+					{
+						BrowserId = browserId,
+						ConnectionId = connectionId
+					});
+				}
+				else
+				{
+					browserConnection.ConnectionId = connectionId;
+				}
+			}
 		}
 
 		public void RemoveConnection(string connectionId)
 		{
-			mConnectionInfoByConnectionId.TryRemove(connectionId, out _);
+			lock (mConnections)
+			{
+				var connection = mConnections.SingleOrDefault(x => x.ConnectionId == connectionId);
+				if (connection != null)
+				{
+					mConnections.Remove(connection);
+				}
+			}
 		}
 
 		public async Task<IEnumerable<BrowserConnectionInfo>> GetConnectedBrowsers()
 		{
-			var temp = mConnectionInfoByConnectionId.Values
-				.Select(x => new { Value = x, Browser = mBrowserRepository.GetById(x.BrowserId) });
+			var temp = mConnections.Select(x => new { Value = x, Browser = mBrowserRepository.GetById(x.BrowserId) });
 
 			await Task.WhenAll(temp.Select(x => x.Browser));
 
@@ -46,7 +60,7 @@ namespace RealTimeTabSynchronizer.Server.Browsers
 
 		public async Task<BrowserConnectionInfo> GetByBrowserId(Guid browserId)
 		{
-			var connection = mConnectionInfoByConnectionId.Values.SingleOrDefault(x => x.BrowserId == browserId);
+			var connection = mConnections.SingleOrDefault(x => x.BrowserId == browserId);
 			if (connection == null)
 			{
 				return null;

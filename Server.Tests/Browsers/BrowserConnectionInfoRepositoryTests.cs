@@ -30,6 +30,11 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 		{
 			mBrowserRepositoryMock = new Mock<IBrowserRepository>();
 
+			mBrowserRepositoryMock.Setup(x => x.GetById(It.IsAny<Guid>())).Returns<Guid>(browserId => Task.FromResult(new Browser
+			{
+				Id = browserId
+			}));
+
 			mConnectionRepository = new BrowserConnectionInfoRepository(mBrowserRepositoryMock.Object);
 		}
 
@@ -66,6 +71,24 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 			var connection = await mConnectionRepository.GetByBrowserId(browserId);
 
 			Assert.That(connection, Is.Null);
+		}
+
+		/// We are using only single connection per browser.
+		/// A situation when second connection is added to the server before old one is removed
+		/// can happen in sudden loss of a connection, for example when the browser crashes and is
+		/// restarted.
+		[Test]
+		public async Task AddConnection_RemovesOldConnectionForBrowserWhenNewConnectionForTheSameBrowserIsAdded()
+		{
+			var browserId = Guid.NewGuid();
+
+			mConnectionRepository.AddConnection(browserId, "connection 1");
+
+			mConnectionRepository.AddConnection(browserId, "connection 2");
+
+			var connection = await mConnectionRepository.GetByBrowserId(browserId);
+
+			Assert.That(connection.ConnectionId, Is.EqualTo("connection 2"));
 		}
 	}
 }
