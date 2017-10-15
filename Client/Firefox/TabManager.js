@@ -99,22 +99,29 @@ function TabManager() {
     // Needed to notify the server whether the event is the result of a call from server
     // to break cycles in updating by not propagating events created by the server to other
     // browsers.
-    var eventsCausedByServerCount = {
-        onUrlChanged: 0,
-        onTabMoved: 0,
-        onTabActivated: 0
-    };
+    var eventsCausedByServerCount = {};
+    var getEventsCausedByServerCount = function(tabId) {
+        if (!eventsCausedByServerCount.hasOwnProperty(tabId)) {
+            eventsCausedByServerCount[tabId] = {
+                onUrlChanged: 0,
+                onTabMoved: 0,
+                onTabActivated: 0
+            };
+        }
+
+        return eventsCausedByServerCount[tabId];
+    }
 
     this.moveTab = function(tabId, index) {
         // TODO The browser can refuse to move the tab, needs to do something with it?
         return browser.tabs.move(tabId, { index: index }).then(function() {
-            eventsCausedByServerCount.onTabMoved++;
+            getEventsCausedByServerCount(tabId).onTabMoved++;
         });
     };
 
     this.changeTabUrl = function(tabId, newUrl) {
         return browser.tabs.update(tabId, { url: newUrl }).then(function() {
-            eventsCausedByServerCount.onUrlChanged++;
+            getEventsCausedByServerCount(tabId).onUrlChanged++;
         });
     };
 
@@ -124,7 +131,7 @@ function TabManager() {
 
     this.activateTab = function(tabId) {
         return browser.tabs.update(tabId, { active: true }).then(function() {
-            eventsCausedByServerCount.onTabActivated++;
+            getEventsCausedByServerCount(tabId).onTabActivated++;
         });
     };
 
@@ -185,8 +192,8 @@ function TabManager() {
             tabsWithOnCreatedCalled.hasOwnProperty(tabId)) {
 
             var isCausedByServer = false;
-            if (eventsCausedByServerCount.onUrlChanged > 0) {
-                eventsCausedByServerCount.onUrlChanged--;
+            if (getEventsCausedByServerCount(tabId).onUrlChanged > 0) {
+                getEventsCausedByServerCount(tabId).onUrlChanged--;
                 isCausedByServer = true;
             }
 
@@ -201,8 +208,8 @@ function TabManager() {
         console.log(moveInfo);
 
         var isCausedByServer = false;
-        if (eventsCausedByServerCount.onTabMoved > 0) {
-            eventsCausedByServerCount.onTabMoved--;
+        if (getEventsCausedByServerCount(tabId).onTabMoved > 0) {
+            getEventsCausedByServerCount(tabId).onTabMoved--;
             isCausedByServer = true;
         }
 
@@ -213,8 +220,8 @@ function TabManager() {
         console.log("OnActivated tabId: " + activeInfo.tabId);
 
         var isCausedByServer = false;
-        if (eventsCausedByServerCount.onTabActivated > 0) {
-            eventsCausedByServerCount.onTabActivated--;
+        if (getEventsCausedByServerCount(activeInfo.tabId).onTabActivated > 0) {
+            getEventsCausedByServerCount(activeInfo.tabId).onTabActivated--;
             isCausedByServer = true;
         }
 
