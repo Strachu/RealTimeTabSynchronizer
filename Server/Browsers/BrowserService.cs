@@ -23,7 +23,7 @@ namespace RealTimeTabSynchronizer.Server.Browsers
 			mPendingRequestService = pendingRequestService;
 		}
 
-		public async Task AddTab(Guid browserId, int serverTabId, int index, string url, bool createInBackground)
+		public async Task AddTab(Guid browserId, int serverTabId, int index, string url, bool createInBackground, bool isRequestedByInitializer)
 		{
 			var connectionInfo = await mConnectionRepository.GetByBrowserId(browserId);
 			if (connectionInfo == null)
@@ -39,7 +39,7 @@ namespace RealTimeTabSynchronizer.Server.Browsers
 			};
 			var requestId = mPendingRequestService.AddRequestAwaitingAcknowledgment(requestData);
 
-			await mCallContext.Clients.Client(connectionInfo.ConnectionId).AddTab(requestId, index, url, createInBackground);
+			await mCallContext.Clients.Client(connectionInfo.ConnectionId).AddTab(requestId, index, url, createInBackground, isRequestedByInitializer);
 		}
 	}
 }

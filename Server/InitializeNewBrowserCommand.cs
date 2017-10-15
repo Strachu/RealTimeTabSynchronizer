@@ -96,7 +96,7 @@ namespace RealTimeTabSynchronizer.Server
 				if (!oldTabValue.Url.Equals(newTabValue.Url, StringComparison.OrdinalIgnoreCase))
 				{
 					// TODO This does not throw when client has disconnected!
-					await browser.ChangeTabUrl(oldTabValue.Id, newTabValue.Url);
+					await browser.ChangeTabUrl(oldTabValue.Id, newTabValue.Url, isRequestedByInitializer: true);
 				}
 
 				var clientSideTab = new BrowserTab()
@@ -120,7 +120,8 @@ namespace RealTimeTabSynchronizer.Server
 						serverTab.Id,
 						serverTab.Index.Value,
 						serverTab.Url,
-						createInBackground: true);
+						createInBackground: true,
+						isRequestedByInitializer: true);
 			}
 
 			// Test Case:
@@ -131,7 +132,7 @@ namespace RealTimeTabSynchronizer.Server
 			{
 				var openTab = tabsSortedByIndex[i];
 
-				await browser.CloseTab(openTab.Id);
+				await browser.CloseTab(openTab.Id, isRequestedByInitializer: true);
 			}
 		}
 	}

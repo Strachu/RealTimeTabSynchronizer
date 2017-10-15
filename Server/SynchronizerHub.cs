@@ -441,6 +441,10 @@ namespace RealTimeTabSynchronizer.Server
 			var serverState = (await mTabDataRepository.GetAllTabs()).ToList();
 			var serverSideChanges = mServerStateDiffCalculator.ComputeChanges(browserStateOnLastUpdate, serverState).ToList();
 
+				mLogger.LogDebug(
+					$"Changes to apply from the server: " + Environment.NewLine +
+					$"{String.Join(";\n", serverSideChanges)}");
+
 			foreach (var change in serverSideChanges)
 			{
 				if (change is TabCreatedDto addTabAction)
@@ -454,7 +458,8 @@ namespace RealTimeTabSynchronizer.Server
 						serverTabId,
 						addTabAction.TabIndex,
 						addTabAction.Url,
-						addTabAction.CreateInBackground);
+						addTabAction.CreateInBackground,
+						isRequestedByInitializer: true);
 
 					continue;
 				}
@@ -474,15 +479,15 @@ namespace RealTimeTabSynchronizer.Server
 				switch (change)
 				{
 					case TabUrlChangedDto dto:
-						await Clients.Caller.ChangeTabUrl(browserTabId, dto.NewUrl);
+						await Clients.Caller.ChangeTabUrl(browserTabId, dto.NewUrl, isRequestedByInitializer: true);
 						break;
 
 					case TabMovedDto dto:
-						await Clients.Caller.MoveTab(browserTabId, dto.NewIndex);
+						await Clients.Caller.MoveTab(browserTabId, dto.NewIndex, isRequestedByInitializer: true);
 						break;
 
 					case TabClosedDto dto:
-						await Clients.Caller.CloseTab(browserTabId);
+						await Clients.Caller.CloseTab(browserTabId, isRequestedByInitializer: true);
 						break;
 				}
 			}

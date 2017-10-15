@@ -203,8 +203,17 @@ function SynchronizerServer(browserId) {
     }
 
     var mTabManagerCallQueue = Promise.resolve();
-    hub.client.addTab = function(requestId, tabIndex, url, createInBackground) {
-        return mTabManagerCallQueue = mTabManagerCallQueue.thenEvenIfError(function() {
+    var handleCallFromServer = function(isFromInitializer, action) {
+        // Handle the action only if client has been already synchronized otherwise
+        // all actions done by other browsers will be duplicated if it's synchronization
+        // happen between connection and finishing our synchronization.
+        if (initialized || isFromInitializer) {
+            return mTabManagerCallQueue = mTabManagerCallQueue.thenEvenIfError(action);
+        }
+    }
+
+    hub.client.addTab = function(requestId, tabIndex, url, createInBackground, isFromInitializer) {
+        return handleCallFromServer(isFromInitializer, function() {
             console.log("addTab(" + tabIndex + ", " + url + ", " + createInBackground);
 
             return tabManager.addTab(tabIndex, url, createInBackground).then(function(tabInfo) {
@@ -218,32 +227,32 @@ function SynchronizerServer(browserId) {
         });
     };
 
-    hub.client.moveTab = function(tabId, newIndex) {
-        return mTabManagerCallQueue = mTabManagerCallQueue.thenEvenIfError(function() {
+    hub.client.moveTab = function(tabId, newIndex, isFromInitializer) {
+        return handleCallFromServer(isFromInitializer, function() {
             console.log("moveTab(" + tabId + ", " + newIndex + ")");
 
             return tabManager.moveTab(tabId, newIndex);
         });
     };
 
-    hub.client.closeTab = function(tabId) {
-        return mTabManagerCallQueue = mTabManagerCallQueue.thenEvenIfError(function() {
+    hub.client.closeTab = function(tabId, isFromInitializer) {
+        return handleCallFromServer(isFromInitializer, function() {
             console.log("closeTab(" + tabId + ")");
 
             return tabManager.closeTab(tabId);
         });
     };
 
-    hub.client.changeTabUrl = function(tabId, newUrl) {
-        return mTabManagerCallQueue = mTabManagerCallQueue.thenEvenIfError(function() {
+    hub.client.changeTabUrl = function(tabId, newUrl, isFromInitializer) {
+        return handleCallFromServer(isFromInitializer, function() {
             console.log("changeTabUrl(" + tabId + ", " + newUrl + ")");
 
             return tabManager.changeTabUrl(tabId, newUrl);
         });
     };
 
-    hub.client.activateTab = function(tabId) {
-        return mTabManagerCallQueue = mTabManagerCallQueue.thenEvenIfError(function() {
+    hub.client.activateTab = function(tabId, isFromInitializer) {
+        return handleCallFromServer(isFromInitializer, function() {
             console.log("activateTab(" + tabId + ")");
 
             return tabManager.activateTab(tabId);
