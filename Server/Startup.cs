@@ -69,7 +69,7 @@ namespace RealTimeTabSynchronizer.Server
 			services.AddScoped<IBrowserTabRepository, BrowserTabRepository>();
 			services.AddScoped<IActiveTabDao, ActiveTabDao>();
 			services.AddScoped<IBrowserTabIdServerTabIdMapper, BrowserTabIdServerTabIdMapper>();
-			services.AddSingleton<IBrowserConnectionInfoRepository, BrowserConnectionInfoRepository>();
+			services.AddScoped<IBrowserConnectionInfoRepository, BrowserConnectionInfoRepository>();
 			services.AddScoped<ITabService, TabService>();
 			services.AddScoped<IPendingRequestService, PendingRequestService>();
 			services.AddScoped<IBrowserService, BrowserService>();

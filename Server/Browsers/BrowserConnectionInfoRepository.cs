@@ -8,7 +8,7 @@ namespace RealTimeTabSynchronizer.Server.Browsers
 {
 	public class BrowserConnectionInfoRepository : IBrowserConnectionInfoRepository
 	{
-		private readonly IList<BrowserConnectionInfo> mConnections = new List<BrowserConnectionInfo>();
+		private static readonly IList<BrowserConnectionInfo> mConnections = new List<BrowserConnectionInfo>();
 
 		private readonly IBrowserRepository mBrowserRepository;
 
