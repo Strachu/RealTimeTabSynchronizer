@@ -28,51 +28,60 @@ Although contributions are welcome.
 - Cross platform server software supporting all main desktop OSes and Raspberry Pi,
 
 # Supported browsers
-- Mozilla Firefox (desktop) 55.0,
-- Firefox For Android 56.0
+- Mozilla Firefox (desktop) **55.0**,
+- Firefox For Android **56.0**
 
 # Server requirements
 To run the application you need:
 - Any modern linux distribution (tested on Xubuntu 16.04), Windows (not tested), Mac OS X (not tested) or Raspbian Jessie (or later).
-- [.NET Core 1.1 Runtime](https://www.microsoft.com/net/download/core#/runtime)
+- [.NET Core 2.0 Runtime](https://www.microsoft.com/net/download/core#/runtime)
 
 Additionally, if you want to compile the server you need:
-- [.NET Core 1.1 SDK](https://www.microsoft.com/net/download/core#/sdk)
+- [.NET Core 2.0 SDK](https://www.microsoft.com/net/download/core#/sdk)
 
 # Download
 The binary releases and their corresponding source code snapshots can be downloaded at the [releases](https://github.com/Strachu/RealTimeTabSynchronizer/releases) page.
 
 If you would like to retrieve the most up to date source code and build the server and browser addins yourself, install git
 and clone the repository by executing the command:
-`git clone https://github.com/Strachu/FileArchiver.git` or alternatively, click the "Download ZIP" button at the side
+`git clone https://github.com/Strachu/RealTimeTabSynchronizer.git` or alternatively, click the "Download ZIP" button at the side
 panel of this page.
 
 # Installation
 ## Ubuntu 16.04 / Raspbian Jessy
-1. Install [.NET Core 1.1 Runtime](https://www.microsoft.com/net/download/linux) if haven't done yet,
-2. TODO
+1. Install [.NET Core 2.0 Runtime](https://www.microsoft.com/net/download/linux) if haven't done yet,
+2. **TODO**
 
 # Building
 ## Ubuntu 16.04 / Raspbian Jessy
-1. Install [.NET Core 1.1 SDK](https://www.microsoft.com/net/download/linux)
+1. Install [.NET Core 2.0 SDK](https://www.microsoft.com/net/download/linux)
 2. Open terminal and `cd` into the directory root of RealTimeTabSynchronizer:  
 `cd /path/to/RealTimeTabSynchronizer`
 3. Execute build script:  
 `chmod +x Build.sh`  
 `./Build.sh`  
-4. Done. Building results are in a "Bin" directory.
+4. Done. Building artifacts are in a "Bin" directory.
 
 ## Windows
-1. Install Linux
+1. Install Linux (or translate the `Build.sh` script to a script interpretable by Windows)
 2. Go to ubuntu building instruction
 
 # Libraries
 The application uses the following libraries:
-**TODO**
+- .NET Core 2.0
+- [SignalR 0.2.0](http://signalr.net/)
+- [Entity Framework Core 1.1.1](https://github.com/aspnet/EntityFrameworkCore)
+- [Newtonsoft.Json](http://www.newtonsoft.com/json) - JSON parsing.
+- [NUnit 3.7.1](http://www.nunit.org/) as a unit test framework.
+- [Moq 4.7.99](https://github.com/moq/moq4) as a test mock framework.
+- [FluentAssertions 4.19.4](http://fluentassertions.com/) assertions helpers.
 
 # Tools
 During the creation of the application the following tools were used:
-**TODO**
+- [Visual Studio Code](https://www.pgadmin.org/)
+- [Git](https://git-scm.com/)
+- [Git Extensions](https://github.com/gitextensions/gitextensions)
+- [pgAdmin](https://www.pgadmin.org/)
 
 # License
 RealTimeTabSynchronizer is a free software distributed under the GNU LGPL 3 or later license.
