@@ -41,6 +41,9 @@ namespace RealTimeTabSynchronizer.Server
 		private readonly IChangeListOptimizer mChangeListOptimizer;
 		private readonly IInitializeNewBrowserCommand mInitializeNewBrowserCommand;
 
+		private static readonly IDictionary<(Guid browserId, int serverTabId), ICollection<Func<int, BrowserConnectionInfo, Task>>>
+			mActionsAwaitingTabAddedAckByServerTabId = new Dictionary<(Guid browserId, int serverTabId), ICollection<Func<int, BrowserConnectionInfo, Task>>>();
+
 		public SynchronizerHub(
 			ILogger<SynchronizerHub> logger,
 			TabSynchronizerDbContext dbContext,
@@ -143,6 +146,11 @@ namespace RealTimeTabSynchronizer.Server
 						ServerTabId = requestData.ServerTabId
 					});
 
+					await ExecuteQueuedActionsForNotAcknowledgedYetTab(
+						requestData.BrowserId,
+						tabId,
+						requestData.ServerTabId);
+
 					mPendingRequestService.SetRequestFulfilled(requestId);
 
 					await mUoW.SaveChangesAsync();
@@ -155,6 +163,24 @@ namespace RealTimeTabSynchronizer.Server
 			}
 
 			mLogger.LogInformation("Finished handling the acknowledge for adding request.");
+		}
+
+		private async Task ExecuteQueuedActionsForNotAcknowledgedYetTab(
+			Guid browserId,
+			int browserTabId,
+			int serverTabId)
+		{
+			var key = (browserId, serverTabId);
+			if (mActionsAwaitingTabAddedAckByServerTabId.TryGetValue(key, out var actionsToExecute))
+			{
+				var browserConnectionInfo = await mConnectionRepository.GetByBrowserId(browserId);
+				foreach (var action in actionsToExecute)
+				{
+					await action(browserTabId, browserConnectionInfo);
+				}
+
+				mActionsAwaitingTabAddedAckByServerTabId.Remove(key);
+			}
 		}
 
 		public async Task MoveTab(Guid browserId, int tabId, int newIndex, bool isAck = false)
@@ -441,9 +467,9 @@ namespace RealTimeTabSynchronizer.Server
 			var serverState = (await mTabDataRepository.GetAllTabs()).ToList();
 			var serverSideChanges = mServerStateDiffCalculator.ComputeChanges(browserStateOnLastUpdate, serverState).ToList();
 
-				mLogger.LogDebug(
-					$"Changes to apply from the server: " + Environment.NewLine +
-					$"{String.Join(";\n", serverSideChanges)}");
+			mLogger.LogDebug(
+				$"Changes to apply from the server: " + Environment.NewLine +
+				$"{String.Join(";\n", serverSideChanges)}");
 
 			foreach (var change in serverSideChanges)
 			{
@@ -556,19 +582,34 @@ namespace RealTimeTabSynchronizer.Server
 		private async Task ForEveryOtherConnectedBrowserWithTab(
 			Guid currentBrowserId,
 			int serverTabId,
-			 Func<int, BrowserConnectionInfo, Task> action)
+			Func<int, BrowserConnectionInfo, Task> action)
 		{
 			var connectedBrowsers = await mConnectionRepository.GetConnectedBrowsers();
 			foreach (var browser in connectedBrowsers.Where(x => x.BrowserId != currentBrowserId))
 			{
 				var browserTabId = await mTabIdMapper.GetBrowserTabIdForServerTabId(browser.BrowserId, serverTabId);
-				if (browserTabId == null)
+				if (browserTabId != null)
 				{
-					mLogger.LogDebug($"Browser {browser.BrowserId} does not have a tab with id = {serverTabId}.");
+					await action(browserTabId.Value, browser);
 					continue;
 				}
 
-				await action(browserTabId.Value, browser);
+				if (mPendingRequestService.IsThereAPendingAddTabRequestForServerTab(browser.BrowserId, serverTabId))
+				{
+					mLogger.LogDebug($"Tab with id = {serverTabId} is awaiting an acknowledge on browser {browser.BrowserId}.");
+
+					var key = (browser.BrowserId, serverTabId);
+					if (!mActionsAwaitingTabAddedAckByServerTabId.TryGetValue(key, out var queuedActions))
+					{
+						queuedActions = new List<Func<int, BrowserConnectionInfo, Task>>();
+						mActionsAwaitingTabAddedAckByServerTabId[key] = queuedActions;
+					}
+
+					queuedActions.Add(action);
+					continue;
+				}
+
+				mLogger.LogDebug($"Browser {browser.BrowserId} does not have a tab with id = {serverTabId}.");
 			}
 		}
 	}
