@@ -20,9 +20,9 @@ namespace RealTimeTabSynchronizer.Server.ChangeHistory
 			var processedIds = allChanges.Select(x => x.ActionId).ToList();
 
 			var browserChanges = mDbContext.ProcessedChanges.Where(x => x.BrowserId == browserId);
-			var alreadyProcessedChanges = browserChanges.Where(x => processedIds.Contains(x.Id));
+			var alreadyProcessedChanges = browserChanges.Where(x => processedIds.Contains(x.Id)).Select(x => x.Id).ToList();
 
-			var notProcessedChanges = allChanges.Where(x => alreadyProcessedChanges.All(y => y.Id != x.ActionId));
+			var notProcessedChanges = allChanges.Where(x => alreadyProcessedChanges.All(y => y != x.ActionId));
 
 			MarkChangesAsAlreadyProcessed(browserId, notProcessedChanges);
 
