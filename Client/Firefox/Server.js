@@ -61,7 +61,8 @@ function SynchronizerServer(browserId) {
                                         changeToReplay.tabId,
                                         changeToReplay.index,
                                         changeToReplay.url,
-                                        changeToReplay.createInBackground)
+                                        changeToReplay.createInBackground,
+                                        false);
                                 });
                                 break;
                             case "moveTab":
@@ -69,14 +70,16 @@ function SynchronizerServer(browserId) {
                                     return hub.server.moveTab(
                                         browserId,
                                         changeToReplay.tabId,
-                                        changeToReplay.newIndex)
+                                        changeToReplay.newIndex,
+                                        false);
                                 });
                                 break;
                             case "closeTab":
                                 mHubQueuePromise = mHubQueuePromise.then(function() {
                                     return hub.server.closeTab(
                                         browserId,
-                                        changeToReplay.tabId)
+                                        changeToReplay.tabId,
+                                        false);
                                 });
                                 break;
                             case "changeTabUrl":
@@ -84,7 +87,8 @@ function SynchronizerServer(browserId) {
                                     return hub.server.changeTabUrl(
                                         browserId,
                                         changeToReplay.tabId,
-                                        changeToReplay.newUrl)
+                                        changeToReplay.newUrl,
+                                        false);
                                 });
                                 break;
                             default:
@@ -124,6 +128,7 @@ function SynchronizerServer(browserId) {
     this.addTab = function(tabId, index, url, createInBackground) {
         return mHubQueuePromise = mHubQueuePromise.thenEvenIfError(function() {
             if (canTalkWithServer()) {
+                console.log("hub.server.addTab" + tabId);
                 return hub.server.addTab(browserId, tabId, index, url, createInBackground)
                     .catch(function() {
                         return changeTracker.addTab(tabId, index, url, createInBackground);
@@ -137,6 +142,7 @@ function SynchronizerServer(browserId) {
     this.changeTabUrl = function(tabId, tabIndex, url, isCausedByServer) {
         return mHubQueuePromise = mHubQueuePromise.thenEvenIfError(function() {
             if (canTalkWithServer()) {
+                console.log("hub.server.changeTabUrl" + tabId);
                 return hub.server.changeTabUrl(browserId, tabId, url, isCausedByServer)
                     .catch(function() {
                         return changeTracker.changeTabUrl(tabId, tabIndex, url);
@@ -150,6 +156,7 @@ function SynchronizerServer(browserId) {
     this.moveTab = function(tabId, fromIndex, newIndex, isCausedByServer) {
         return mHubQueuePromise = mHubQueuePromise.thenEvenIfError(function() {
             if (canTalkWithServer()) {
+                console.log("hub.server.moveTab" + tabId);
                 return hub.server.moveTab(browserId, tabId, newIndex, isCausedByServer)
                     .catch(function() {
                         return changeTracker.moveTab(tabId, fromIndex, newIndex);
@@ -180,6 +187,7 @@ function SynchronizerServer(browserId) {
     this.activateTab = function(tabId, isCausedByServer) {
         var body = function() {
             if (canTalkWithServer()) {
+                console.log("hub.server.activateTab" + tabId);
                 return hub.server.activateTab(browserId, tabId, isCausedByServer)
                     .catch(function() {
                         return tabManager.getTabIndexByTabId(tabId).then(function(index) {
