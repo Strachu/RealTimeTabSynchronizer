@@ -124,6 +124,7 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 				changesSinceLastConnection: new object[]
 				{
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""createTab"",
 						dateTime: ""2017-01-01 10:00:00"",
 						index: 1,
@@ -131,35 +132,41 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 						createInBackground: 0						
 					}"),
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""changeTabUrl"",
 						dateTime: ""2017-01-01 10:01:00"",
 						index: 1,
 						newUrl: ""removed url 2"",				
 					}"),
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""closeTab"",
 						dateTime: ""2017-01-01 10:02:00"",
 						index: 1,			
 					}"),
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""moveTab"",
 						dateTime: ""2017-01-01 10:05:00"",
 						index: 2,			
 						newIndex: 0,	
 					}"),
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""changeTabUrl"",
 						dateTime: ""2017-01-01 10:05:30"",
 						index: 2,			
 						newUrl: ""transient url"",		
 					}"),
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""moveTab"",
 						dateTime: ""2017-01-01 10:06:00"",
 						index: 0,			
 						newIndex: 2,	
 					}"),
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""changeTabUrl"",
 						dateTime: ""2017-01-01 10:06:30"",
 						index: 1,			
@@ -189,6 +196,7 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 				changesSinceLastConnection: new object[]
 				{
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""createTab"",
 						dateTime: ""2017-01-01 10:00:00"",
 						index: 0,
@@ -196,6 +204,7 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 						createInBackground: 0			
 					}"),
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""createTab"",
 						dateTime: ""2017-01-01 11:00:00"",
 						index: 3,
@@ -245,11 +254,13 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 				changesSinceLastConnection: new object[]
 				{
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""closeTab"",
 						dateTime: ""2017-01-01 10:00:00"",
 						index: 1,				
 					}"),
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""closeTab"",
 						dateTime: ""2017-01-01 10:02:00"",
 						index: 3,			
@@ -279,12 +290,14 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 				changesSinceLastConnection: new object[]
 				{
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""changeTabUrl"",
 						dateTime: ""2017-01-01 10:00:00"",
 						index: 1,			
 						newUrl: ""new url 1"",			
 					}"),
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""changeTabUrl"",
 						dateTime: ""2017-01-01 10:00:00"",
 						index: 2,			
@@ -314,12 +327,14 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 				changesSinceLastConnection: new object[]
 				{
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""moveTab"",
 						dateTime: ""2017-01-01 10:00:00"",
 						index: 0,			
 						newIndex: 2,	
 					}"),
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""moveTab"",
 						dateTime: ""2017-01-01 10:06:00"",
 						index: 1,			
@@ -349,6 +364,7 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 				changesSinceLastConnection: new object[]
 				{
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""createTab"",
 						dateTime: ""2017-01-01 10:00:00"",
 						index: 1,
@@ -356,12 +372,14 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 						createInBackground: 0						
 					}"),
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""moveTab"",
 						dateTime: ""2017-01-01 10:05:00"",
 						index: 0,			
 						newIndex: 2,	
 					}"),
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""createTab"",
 						dateTime: ""2017-01-01 10:10:00"",
 						index: 4,
@@ -369,18 +387,21 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 						createInBackground: 0								
 					}"),
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""moveTab"",
 						dateTime: ""2017-01-01 10:15:00"",
 						index: 1,			
 						newIndex: 3,	
 					}"),
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""changeTabUrl"",
 						dateTime: ""2017-01-01 10:25:30"",
 						index: 3,			
 						newUrl: ""new url"",		
 					}"),
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""closeTab"",
 						dateTime: ""2017-01-01 10:30:00"",
 						index: 2,			
@@ -411,6 +432,7 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 				changesSinceLastConnection: new object[]
 				{
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""createTab"",
 						dateTime: ""2017-01-01 10:00:00"",
 						index: 3,
@@ -418,6 +440,7 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 						createInBackground: 0						
 					}"),
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""createTab"",
 						dateTime: ""2017-01-01 11:00:00"",
 						index: 4,
@@ -425,6 +448,7 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 						createInBackground: 0						
 					}"),
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""closeTab"",
 						dateTime: ""2017-01-01 12:00:00"",
 						index: 3,			
@@ -501,6 +525,7 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 				changesSinceLastConnection: new object[]
 				{
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""createTab"",
 						dateTime: ""2017-01-01 10:00:00"",
 						index: 1,
@@ -508,6 +533,7 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 						createInBackground: 0						
 					}"),
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""createTab"",
 						dateTime: ""2017-01-01 11:00:00"",
 						index: 3,
@@ -542,6 +568,7 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 				changesSinceLastConnection: new object[]
 				{
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""closeTab"",
 						dateTime: ""2017-01-01 10:02:00"",
 						index: 1,						
@@ -574,6 +601,7 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 				changesSinceLastConnection: new object[]
 				{
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""closeTab"",
 						dateTime: ""2017-01-01 10:02:00"",
 						index: 0,						
@@ -600,6 +628,7 @@ namespace RealTimeTabSynchronizer.Server.Tests.IntegrationTests
 				changesSinceLastConnection: new object[]
 				{
 					JObject.Parse(@"{
+						changeId: """+Guid.NewGuid()+@""",
 						type: ""moveTab"",
 						dateTime: ""2017-01-01 10:00:00"",
 						index: 0,			

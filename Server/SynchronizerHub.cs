@@ -12,6 +12,7 @@ using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json.Linq;
 using RealTimeTabSynchronizer.Server.Acknowledgments;
 using RealTimeTabSynchronizer.Server.Browsers;
+using RealTimeTabSynchronizer.Server.ChangeHistory;
 using RealTimeTabSynchronizer.Server.DiffCalculation;
 using RealTimeTabSynchronizer.Server.DiffCalculation.Dto;
 using RealTimeTabSynchronizer.Server.EntityFramework;
@@ -39,6 +40,7 @@ namespace RealTimeTabSynchronizer.Server
 		private readonly IIndexCalculator mIndexCalculator;
 		private readonly IDiffCalculator mServerStateDiffCalculator;
 		private readonly IChangeListOptimizer mChangeListOptimizer;
+		private readonly IChangeHistoryService mChangeHistoryService;
 		private readonly IInitializeNewBrowserCommand mInitializeNewBrowserCommand;
 
 		private static readonly IDictionary<(Guid browserId, int serverTabId), ICollection<Func<int, BrowserConnectionInfo, Task>>>
@@ -59,6 +61,7 @@ namespace RealTimeTabSynchronizer.Server
 			IIndexCalculator indexCalculator,
 			IDiffCalculator serverStateDiffCalculator,
 			IChangeListOptimizer changeListOptimizer,
+			IChangeHistoryService changeHistoryService,
 			IInitializeNewBrowserCommand initializeNewBrowserCommand)
 		{
 			mLogger = logger;
@@ -75,6 +78,7 @@ namespace RealTimeTabSynchronizer.Server
 			mIndexCalculator = indexCalculator;
 			mServerStateDiffCalculator = serverStateDiffCalculator;
 			mChangeListOptimizer = changeListOptimizer;
+			mChangeHistoryService = changeHistoryService;
 			mInitializeNewBrowserCommand = initializeNewBrowserCommand;
 		}
 
@@ -348,6 +352,7 @@ namespace RealTimeTabSynchronizer.Server
 							$"currentlyOpenTabs: " + Environment.NewLine +
 							$"{String.Join(";\n", currentlyOpenTabs)})");
 
+						browserChanges = mChangeHistoryService.FilterOutAlreadyProcessedChanges(browserId, browserChanges).ToList();
 						browserChanges = mChangeListOptimizer.GetOptimizedList(browserChanges).ToList();
 
 						mLogger.LogDebug(

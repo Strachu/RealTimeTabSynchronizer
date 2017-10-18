@@ -10,6 +10,7 @@ var changeTracker = {
 
     addTab: function(tabId, tabIndex, url, createInBackground) {
         return changeTracker._pushChange({
+            changeId: generateUUID(),
             type: "createTab",
             dateTime: new Date(),
             tabId: tabId,
@@ -21,6 +22,7 @@ var changeTracker = {
 
     moveTab: function(tabId, tabIndex, newIndex) {
         return changeTracker._pushChange({
+            changeId: generateUUID(),
             type: "moveTab",
             dateTime: new Date(),
             tabId: tabId,
@@ -31,6 +33,7 @@ var changeTracker = {
 
     closeTab: function(tabId, tabIndex) {
         return changeTracker._pushChange({
+            changeId: generateUUID(),
             type: "closeTab",
             dateTime: new Date(),
             tabId: tabId,
@@ -40,6 +43,7 @@ var changeTracker = {
 
     changeTabUrl: function(tabId, tabIndex, newUrl) {
         return changeTracker._pushChange({
+            changeId: generateUUID(),
             type: "changeTabUrl",
             dateTime: new Date(),
             tabId: tabId,

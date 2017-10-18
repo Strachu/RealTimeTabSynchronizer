@@ -3,6 +3,7 @@ using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using RealTimeTabSynchronizer.Server.Acknowledgments;
 using RealTimeTabSynchronizer.Server.Browsers;
+using RealTimeTabSynchronizer.Server.ChangeHistory;
 using RealTimeTabSynchronizer.Server.TabData_;
 using RealTimeTabSynchronizer.Server.Tabs.Browsers;
 
@@ -25,6 +26,7 @@ namespace RealTimeTabSynchronizer.Server.EntityFramework
 		public DbSet<Browser> Browsers { get; set; }
 		public DbSet<BrowserTab> BrowserTabs { get; set; }
 		public DbSet<PendingRequest> PendingRequests { get; set; }
+		public DbSet<Change> ProcessedChanges { get; set; }
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{

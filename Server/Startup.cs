@@ -18,6 +18,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RealTimeTabSynchronizer.Server.Acknowledgments;
 using RealTimeTabSynchronizer.Server.Browsers;
+using RealTimeTabSynchronizer.Server.ChangeHistory;
 using RealTimeTabSynchronizer.Server.DiffCalculation;
 using RealTimeTabSynchronizer.Server.EntityFramework;
 using RealTimeTabSynchronizer.Server.SignalR;
@@ -73,6 +74,7 @@ namespace RealTimeTabSynchronizer.Server
 			services.AddScoped<ITabService, TabService>();
 			services.AddScoped<IPendingRequestService, PendingRequestService>();
 			services.AddScoped<IBrowserService, BrowserService>();
+			services.AddScoped<IChangeHistoryService, ChangeHistoryService>();
 			services.AddSingleton<ITabActionDeserializer, JsonTabActionDeserializer>();
 			services.AddSingleton<IIndexCalculator, IndexCalculator>();
 			services.AddSingleton<IDiffCalculator, DiffCalculator>();
