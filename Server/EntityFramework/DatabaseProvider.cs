@@ -3,7 +3,6 @@ namespace RealTimeTabSynchronizer.Server.EntityFramework
     public enum DatabaseProvider
     {
         Sqlite = 0,
-        Postgresql = 1,
-        Mysql = 2
+        Postgresql = 1
     }
 }

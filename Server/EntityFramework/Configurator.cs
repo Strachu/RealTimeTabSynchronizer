@@ -2,7 +2,6 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
-using MySQL.Data.EntityFrameworkCore.Extensions;
 
 namespace RealTimeTabSynchronizer.Server.EntityFramework
 {
@@ -27,10 +26,6 @@ namespace RealTimeTabSynchronizer.Server.EntityFramework
 
                 case DatabaseProvider.Postgresql:
                     EfOptions.UseNpgsql(mOptions.Value.ConnectionString, x => x.CommandTimeout((int)Timeout.TotalSeconds));
-                    break;
-
-                case DatabaseProvider.Mysql:
-                    EfOptions.UseMySQL(mOptions.Value.ConnectionString, x => x.CommandTimeout((int)Timeout.TotalSeconds));
                     break;
 
                 default:

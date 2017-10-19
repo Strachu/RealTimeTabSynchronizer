@@ -7,9 +7,5 @@
         "Sqlite": {
             "ConnectionString": "Data Source=realtimetabsynchronizer.tests.db"
         }
-        //	,
-        //  "Mysql": {
-        //      "ConnectionString": "..."
-        //  }
     }
 }
