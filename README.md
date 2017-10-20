@@ -66,6 +66,37 @@ panel of this page.
 1. Install Linux (or translate the `Build.sh` script to a script interpretable by Windows)
 2. Go to ubuntu building instruction
 
+# Configuration
+Under the server directory there is a JSON file named *appsettings.json*. This file can be used to configure the server.
+## Available options
+### Database
+Configures the database to use for storing the server data. By default the server is configured to use SQLite database which does not require any configuration.
+
+Configuration properties:
+- DatabaseType - indicates which database engine to use. Possible values are "Sqlite" and "Postgresql",
+- ConnectionString - the connection string indicating how to connect to the database.
+#### SQLite
+By default the server is configured to use SQLite and store the database in a file named realtimetabsynchronizer.db.
+```
+    "Database": {
+        "DatabaseType": "Sqlite",
+        "ConnectionString": "Data Source=realtimetabsynchronizer.db;"
+    },
+```
+#### Postgresql
+You can also tell the server to store all data in a postgresql. It can be usefull if you want to browser the database remotely. Before the server can use the database engine you have to create an empty database and an user with DDL and DML rights which the server will user to connect to the database.
+```
+    "Database": {
+        "DatabaseType": "Postgresql",
+        "ConnectionString": "Host=192.168.0.2;Database=realtimetabsynchronizer;Username=user;Password=pass;"
+    },
+```
+### server.urls
+Tells the server at which url and port to listen for connections. The default is to listen at any address at port 31711.
+```
+    "server.urls": "http://+:31711/",
+```
+
 # Libraries
 The application uses the following libraries:
 - .NET Core 2.0
