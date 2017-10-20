@@ -60,7 +60,7 @@ panel of this page.
 3. Execute build script:  
 `chmod +x Build.sh`  
 `./Build.sh`  
-4. Done. Building artifacts are in a "Bin" directory.
+4. Done. Building artifacts are in a *Bin* directory. The deployable server binaries are available under path *Bin/Server/Release/netcoreapp2.0/publish/*
 
 ## Windows
 1. Install Linux (or translate the `Build.sh` script to a script interpretable by Windows)
