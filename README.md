@@ -61,8 +61,8 @@ Run sudo mkdir -p /opt/dotnet && sudo tar zxf dotnet.tar.gz -C /opt/dotnet to cr
 
 Run sudo ln -s /opt/dotnet/dotnet /usr/local/bin` to set up a symbolic link...a shortcut to you Windows folks 😉 to the dotnet executable.
 ```
-2. [Download](#Download) the binary release or [build](#Building) the application yourself.
-3. [Optional] Modify the *appsettings.json* configuration file,
+2. [Download](#download) the binary release or [build](#building) the application yourself.
+3. [Optional] Modify the [*appsettings.json*](#configuration) configuration file,
 4. Copy the entire content of server binaries directory to a destination directory from which the service should run (such as /opt or /srv)
 5. [Optional] Create a dedicated user for the service:
 ```
