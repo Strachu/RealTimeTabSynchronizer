@@ -1,5 +1,8 @@
 function TabManager() {
     var that = this;
+    var pendingOnUpdatedForTabId = {};
+    var onUpdatedEventsToIgnoreForTabId = [];
+    var nextRequestId = 1;
 
     browser.tabs.onActivated.addListener(function(activeInfo) {
         return invokeOrInterceptHandler(function() { return that.onTabActivated(activeInfo); });
@@ -11,11 +14,24 @@ function TabManager() {
         return invokeOrInterceptHandler(function() { return that.onTabRemoved(tabId); });
     });
     browser.tabs.onUpdated.addListener(function(tabId, changeInfo, tabInfo) {
-        return invokeOrInterceptHandler(function() { return that.onTabUpdated(tabId, changeInfo, tabInfo); });
+        var requestId = nextRequestId++;
+        if (pendingOnUpdatedForTabId.hasOwnProperty(tabId)) {
+            pendingOnUpdatedForTabId[tabId].push(requestId);
+        } else {
+            pendingOnUpdatedForTabId[tabId] = [requestId];
+        }
+
+        return invokeOrInterceptHandler(function() { return that.onTabUpdated(requestId, tabId, changeInfo, tabInfo); });
     });
     browser.tabs.onMoved.addListener(function(tabId, moveInfo) {
         return invokeOrInterceptHandler(function() { return that.onTabMoved(tabId, moveInfo); });
     });
+
+    this.onUrlChangeCommit = function(tabId, requestId) {
+        pendingOnUpdatedForTabId[tabId].remove(requestId);
+
+        return !onUpdatedEventsToIgnoreForTabId.remove(requestId);
+    }
 
     // Used to queue the event handlers, without queing the event handlers can finish out of order
     // when different type of event handlers uses different amount of async calls.
@@ -120,6 +136,11 @@ function TabManager() {
     };
 
     this.changeTabUrl = function(tabId, newUrl) {
+        // To prevent the situation in which a tab refresh in browser makes a changeTabUrl
+        // event while in meantime an initializer tells the browser to change url causing
+        // the already started event to overwrite the initializer call on the server.
+        onUpdatedEventsToIgnoreForTabId = onUpdatedEventsToIgnoreForTabId.concat(pendingOnUpdatedForTabId[tabId]);
+
         return browser.tabs.update(tabId, { url: newUrl }).then(function() {
             getEventsCausedByServerCount(tabId).onUrlChanged++;
         });
@@ -176,7 +197,7 @@ function TabManager() {
         return synchronizerServer.closeTab(tabId);
     }
 
-    this.onTabUpdated = function(tabId, changeInfo, tabInfo) {
+    this.onTabUpdated = function(requestId, tabId, changeInfo, tabInfo) {
         console.log("OnUpdated tabId " + tabId);
         console.log("Changed attributes: ");
         console.log(changeInfo);
@@ -198,7 +219,9 @@ function TabManager() {
             }
 
             console.log("OnUpdated for url " + changeInfo.url + " for tab " + tabId);
-            return synchronizerServer.changeTabUrl(tabId, tabInfo.index, changeInfo.url, isCausedByServer);
+            return synchronizerServer.changeTabUrl(requestId, tabId, tabInfo.index, changeInfo.url, isCausedByServer);
+        } else {
+            that.onUrlChangeCommit(tabId, requestId);
         }
     }
 

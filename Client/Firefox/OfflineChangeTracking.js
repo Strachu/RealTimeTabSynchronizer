@@ -41,9 +41,10 @@ var changeTracker = {
         });
     },
 
-    changeTabUrl: function(tabId, tabIndex, newUrl) {
+    changeTabUrl: function(requestId, tabId, tabIndex, newUrl) {
         return changeTracker._pushChange({
             changeId: generateUUID(),
+            browserRequestId: requestId,
             type: "changeTabUrl",
             dateTime: new Date(),
             tabId: tabId,

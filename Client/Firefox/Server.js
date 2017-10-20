@@ -84,6 +84,12 @@ function SynchronizerServer(browserId) {
                                 break;
                             case "changeTabUrl":
                                 mHubQueuePromise = mHubQueuePromise.then(function() {
+                                    var shouldCommit = tabManager.onUrlChangeCommit(changeToReplay.tabId, changeToReplay.browserRequestId);
+                                    if (!shouldCommit) {
+                                        console.log("Changing url tab of " + changeToReplay.tabId + " cancelled");
+                                        return;
+                                    }
+
                                     return hub.server.changeTabUrl(
                                         browserId,
                                         changeToReplay.tabId,
@@ -139,16 +145,23 @@ function SynchronizerServer(browserId) {
         });
     }
 
-    this.changeTabUrl = function(tabId, tabIndex, url, isCausedByServer) {
+    this.changeTabUrl = function(requestId, tabId, tabIndex, url, isCausedByServer) {
         return mHubQueuePromise = mHubQueuePromise.thenEvenIfError(function() {
             if (canTalkWithServer()) {
                 console.log("hub.server.changeTabUrl" + tabId);
+
+                var shouldCommit = tabManager.onUrlChangeCommit(tabId, requestId);
+                if (!shouldCommit) {
+                    console.log("Changing url tab of " + tabId + " cancelled");
+                    return;
+                }
+
                 return hub.server.changeTabUrl(browserId, tabId, url, isCausedByServer)
                     .catch(function() {
                         return changeTracker.changeTabUrl(tabId, tabIndex, url);
                     });
             } else {
-                return changeTracker.changeTabUrl(tabId, tabIndex, url);
+                return changeTracker.changeTabUrl(requestId, tabId, tabIndex, url);
             }
         });
     }
