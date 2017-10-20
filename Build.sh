@@ -44,7 +44,7 @@ echo "Building the server..."
 
 mkdir --parents Bin/Server
 cd Server
-dotnet build -c Release
+dotnet publish -c Release
 cd ..
 cp -R Server/bin/Release Bin/Server
 cp Server/appsettings.json Bin/Server/Release/netcoreapp2.0/
