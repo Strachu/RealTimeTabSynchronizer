@@ -95,7 +95,6 @@ namespace RealTimeTabSynchronizer.Server
 		public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
 		{
 			loggerFactory.AddConsole(Configuration.GetSection("Logging"));
-			loggerFactory.AddDebug();
 
 			app.Map("/signalr", map =>
 			{
