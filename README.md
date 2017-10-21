@@ -67,7 +67,8 @@ sudo adduser --system --no-create-home --disabled-login tabsynchronizer
 sudo addgroup tabsynchronizer
 sudo usermod -g tabsynchronizer tabsynchronizer
 ```
-6. Install the server application as a service:
+6. If created new user for the service, remember to grant him permissions (at least read) to the service directory,
+7. Install the server application as a service:
 ```
 echo '[Unit]
 Description=A server component for RealTimeTabSynchronizer
@@ -78,14 +79,16 @@ After=network.target network-online.target
 Type=simple
 User=tabsynchronizer
 ExecStart=/usr/local/bin/dotnet /srv/RealTimeTabSynchronizer.Server/RealTimeTabSynchronizer.Server.dll
+WorkingDirectory=/srv/RealTimeTabSynchronizer.Server
 
 [Install]
 WantedBy=default.target' | sudo tee /etc/systemd/system/RealTimeTabSynchronizer.Server.service
 sudo chmod 754 /etc/systemd/system/RealTimeTabSynchronizer.Server.service
 sudo systemctl daemon-reload
 sudo systemctl enable RealTimeTabSynchronizer.Server.service
+sudo systemctl start RealTimeTabSynchronizer.Server.service
 ```
-7. TODO Client installation
+8. TODO Client installation
 
 # Building
 ## Ubuntu 16.04 / Raspbian Jessy
