@@ -476,6 +476,17 @@ namespace RealTimeTabSynchronizer.Server
 				$"Changes to apply from the server: " + Environment.NewLine +
 				$"{String.Join(";\n", serverSideChanges)}");
 
+			var idsByOldIndex = browserStateOnLastUpdate.ToDictionary(x => x.Index, x => x.BrowserTabId);
+			var idsByNewIndex = serverState
+				.Where(x => x.IsOpen)
+				.Select(x => new
+				{
+					Index = x.Index.Value,
+					BrowserTab = browserStateOnLastUpdate.SingleOrDefault(y => y.ServerTabId == x.Id)
+				})
+				.Where(x => x.BrowserTab != null)
+				.ToDictionary(x => x.Index, x => x.BrowserTab.BrowserTabId);
+
 			foreach (var change in serverSideChanges)
 			{
 				if (change is TabCreatedDto addTabAction)
@@ -495,16 +506,6 @@ namespace RealTimeTabSynchronizer.Server
 					continue;
 				}
 
-				var idsByOldIndex = browserStateOnLastUpdate.ToDictionary(x => x.Index, x => x.BrowserTabId);
-				var idsByNewIndex = serverState
-					.Where(x => x.IsOpen)
-					.Select(x => new
-					{
-						Index = x.Index.Value,
-						BrowserTab = browserStateOnLastUpdate.SingleOrDefault(y => y.ServerTabId == x.Id)
-					})
-					.Where(x => x.BrowserTab != null)
-					.ToDictionary(x => x.Index, x => x.BrowserTab.BrowserTabId);
 				var browserTabId = GetTabIdOfChangedTab(change, serverSideChanges, idsByOldIndex, idsByNewIndex);
 
 				switch (change)
