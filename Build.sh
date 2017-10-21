@@ -47,6 +47,6 @@ cd Server
 dotnet publish -c Release
 cd ..
 cp -R Server/bin/Release Bin/Server
-cp Server/appsettings.json Bin/Server/Release/netcoreapp2.0/
+rm -rf Bin/Server/Release/netcoreapp2.0/publish/appsettings.Development.json
 	
 echo "Done"
