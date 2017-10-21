@@ -56,7 +56,13 @@ namespace RealTimeTabSynchronizer.Server
 		{
 			services.AddLogging();
 			services.AddCors();
-			services.AddSignalR(x => x.Hubs.EnableDetailedErrors = mEnvironment.IsDevelopment());
+			services.AddSignalR(x => 
+			{
+				x.Hubs.EnableDetailedErrors = mEnvironment.IsDevelopment();
+
+				var loggerFactory = ServiceLocator.Services.GetService<ILoggerFactory>();
+				x.Hubs.PipelineModules.Add(new ExceptionLoggingHubPipelineModule(loggerFactory));
+			});
 
 			services.Configure<DatabaseOptions>(Configuration.GetSection("Database"));
 

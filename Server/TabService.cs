@@ -82,7 +82,6 @@ namespace RealTimeTabSynchronizer.Server
 			var tab = await mBrowserTabRepository.GetByBrowserTabId(browserId, tabId);
 			if (tab == null)
 			{
-				// TODO Logging of every exception...
 				throw new ArgumentException($"Tab {tabId} on browser {browserId} does not exist!");
 			}
 

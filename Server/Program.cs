@@ -38,6 +38,8 @@ namespace RealTimeTabSynchronizer.Server
 				.UseStartup<Startup>()
 				.Build();
 
+			ServiceLocator.Services = host.Services;
+
 			RecreateDatabase(host.Services.GetService(typeof(DbContextFactory)) as DbContextFactory);
 
 			host.Run();
