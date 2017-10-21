@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using RealTimeTabSynchronizer.Server.EntityFramework;
 
 namespace RealTimeTabSynchronizer.Server
@@ -16,6 +17,13 @@ namespace RealTimeTabSynchronizer.Server
 	{
 		public static void Main(string[] args)
 		{
+			Console.WriteLine(Version.CopyrightNotice);
+			
+			if(args.Contains("--version"))
+			{
+				return;
+			}
+
 			var binariesDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
 
 			var hostingConfiguration = new ConfigurationBuilder()
