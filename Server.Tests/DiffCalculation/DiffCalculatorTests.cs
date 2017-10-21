@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using NUnit.Framework;
 using RealTimeTabSynchronizer.Server.DiffCalculation;
@@ -660,6 +661,29 @@ namespace RealTimeTabSynchronizer.Server.Tests.DiffCalculation
 			
 			Assert.That(urlChangedAction.TabIndex, Is.EqualTo(4));
 			Assert.That(urlChangedAction.NewUrl, Is.EqualTo("2 changed"));
+		}
+		
+		[Test]
+		public void ComputeChanges_DoesNotReturnUrlChangeForRemovedTabs()
+		{
+			// 012 -> 1(url) -> 02 -> 0
+			var serverTabs = new TabData[]
+			{
+				new TabData { Id = 0, Index = 0, Url = "0" },
+				new TabData { Id = 1, Index = null, Url = "1 changed" },
+				new TabData { Id = 2, Index = null, Url = "2" },
+			};
+
+			var browserTabs = new BrowserTab[]
+			{
+				NewBrowserTab(index: 0, browserUrl: "0", serverTab: serverTabs[0]),
+				NewBrowserTab(index: 1, browserUrl: "1", serverTab: serverTabs[1]),
+				NewBrowserTab(index: 2, browserUrl: "2", serverTab: serverTabs[2]),
+			};
+
+			var computedChanges = mDiffCalculator.ComputeChanges(browserTabs, serverTabs).ToList();
+			
+			Assert.That(computedChanges.OfType<TabUrlChangedDto>().Count, Is.EqualTo(0));
 		}
 
 		private BrowserTab NewBrowserTab(int index, TabData serverTab, string browserUrl = null)

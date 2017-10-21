@@ -125,6 +125,7 @@ namespace RealTimeTabSynchronizer.Server.DiffCalculation
         private IEnumerable<TabUrlChangedDto> GetUrlChangedActions(IReadOnlyCollection<TabWithAdjustedIndices> original)
         {
             var tabsWithChangedUrl = original
+                .Where(x => x.Tab.ServerTab.IsOpen)
                 .Where(x => !x.Tab.Url.Equals(x.Tab.ServerTab.Url, StringComparison.OrdinalIgnoreCase))
                 .ToList();
             return tabsWithChangedUrl.Select(x => new TabUrlChangedDto
