@@ -50,16 +50,13 @@ panel of this page.
 ## Ubuntu 16.04 / Raspbian Jessy
 1. Install .NET Core 2.0 Runtime if haven't done yet:  
 a) **Ubuntu**: download the [.NET Core 2.0 Runtime](https://www.microsoft.com/net/download/linux),  
-b) **Raspbian**: follow the instructions in section *Task: Install the .NET Core Runtime on the Raspberry Pi* at [Setting up Raspian and .NET Core 2.0 on a Raspberry Pi](https://blogs.msdn.microsoft.com/david/2017/07/20/setting_up_raspian_and_dotnet_core_2_0_on_a_raspberry_pi/):
+b) **Raspbian**: follow the instructions in section *Task: Install the .NET Core Runtime on the Raspberry Pi* at [Setting up Raspian and .NET Core 2.0 on a Raspberry Pi](https://blogs.msdn.microsoft.com/david/2017/07/20/setting_up_raspian_and_dotnet_core_2_0_on_a_raspberry_pi/) (but **change the .net core url to https://dotnetcli.blob.core.windows.net/dotnet/Runtime/2.0.0/dotnet-runtime-2.0.0-linux-arm.tar.gz** as the newer prelease builds of runtime are not compatible with apps requesting stable runtime)
+:
 ```
-Run sudo apt-get install curl libunwind8 gettext.  
-This will use the apt-get package manager to install three prerequiste packages.
-
-Run curl -sSL -o dotnet.tar.gz https://dotnetcli.blob.core.windows.net/dotnet/Runtime/release/2.0.0/dotnet-runtime-latest-linux-arm.tar.gz to download the latest .NET Core Runtime for ARM32. This is refereed to as armhf on the Daily Builds page.
-
-Run sudo mkdir -p /opt/dotnet && sudo tar zxf dotnet.tar.gz -C /opt/dotnet to create a destination folder and extract the downloaded package into it.
-
-Run sudo ln -s /opt/dotnet/dotnet /usr/local/bin` to set up a symbolic link...a shortcut to you Windows folks 😉 to the dotnet executable.
+sudo apt-get install curl libunwind8 gettext.  
+curl -sSL -o dotnet.tar.gz https://dotnetcli.blob.core.windows.net/dotnet/Runtime/2.0.0/dotnet-runtime-2.0.0-linux-arm.tar.gz
+sudo mkdir -p /opt/dotnet && sudo tar zxf dotnet.tar.gz -C /opt/dotnet
+sudo ln -s /opt/dotnet/dotnet /usr/local/bin
 ```
 2. [Download](#download) the binary release or [build](#building) the application yourself.
 3. [Optional] Modify the [*appsettings.json*](#configuration) configuration file,
