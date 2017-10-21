@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.Loader;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -15,14 +16,16 @@ namespace RealTimeTabSynchronizer.Server
 	{
 		public static void Main(string[] args)
 		{
+			var binariesDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+
 			var hostingConfiguration = new ConfigurationBuilder()
-				.SetBasePath(Directory.GetCurrentDirectory())
+				.SetBasePath(binariesDirectory)
 				.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
 				.Build();
 
 			var host = new WebHostBuilder()
 				.UseKestrel()
-				.UseContentRoot(Directory.GetCurrentDirectory())
+				.UseContentRoot(binariesDirectory)
 				.UseConfiguration(hostingConfiguration)
 				.UseStartup<Startup>()
 				.Build();
