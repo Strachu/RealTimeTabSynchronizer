@@ -47,7 +47,9 @@ and clone the repository by executing the command:
 `git clone https://github.com/Strachu/RealTimeTabSynchronizer.git` or alternatively, click the "Download ZIP" button at the side
 panel of this page.
 
-## Ubuntu 16.04 / Raspbian Jessy
+# Installation
+## Server
+### Ubuntu 16.04 / Raspbian Jessy
 1. Install .NET Core 2.0 Runtime if haven't done yet:  
 a) **Ubuntu**: download the [.NET Core 2.0 Runtime](https://www.microsoft.com/net/download/linux),  
 b) **Raspbian**: follow the instructions in section *Task: Install the .NET Core Runtime on the Raspberry Pi* at [Setting up Raspian and .NET Core 2.0 on a Raspberry Pi](https://blogs.msdn.microsoft.com/david/2017/07/20/setting_up_raspian_and_dotnet_core_2_0_on_a_raspberry_pi/) (but **change the .net core url to https://dotnetcli.blob.core.windows.net/dotnet/Runtime/2.0.0/dotnet-runtime-2.0.0-linux-arm.tar.gz** as the newer prelease builds of runtime are not compatible with apps requesting stable runtime)
@@ -88,7 +90,25 @@ sudo systemctl daemon-reload
 sudo systemctl enable RealTimeTabSynchronizer.Server.service
 sudo systemctl start RealTimeTabSynchronizer.Server.service
 ```
-8. TODO Client installation
+## Client
+### Firefox Desktop
+1. [Download](#download) the binary release or [build](#building) the application yourself.
+2. Browse to *Bin/Firefox/Desktop* and double click *RealTimeTabSynchronizer.xpi*.
+3. Addon configuration page will automatically open if the addon has not been installed before.
+4. Enter the *Server url* (a value from server.urls in [*appsettings.json*](#configuration)). For example:  http://192.168.0.2:31711
+5. Click Save
+### Firefox for Android
+1. Open Firefox.
+2. Browse to **about:config**.
+3. Find the option **xpinstall.signatures.required** and set its value to **false** by clicking *Toggle* if it is set to true.
+1. [Download](#download) the binary release or [build](#building) the application yourself.
+2. Browse to *Bin/Firefox/Android* and click *RealTimeTabSynchronizer.xpi*.
+3. Select "Open with Firefox".
+4. When asked during installing the addon, choose "Allow".
+5. Click on the "3 dots" (menu) and select "Add-ons".
+6. Click "RealTime Tab Synchronizer".
+7. Enter the *Server url* (a value from server.urls in [*appsettings.json*](#configuration)). For example:  http://192.168.0.2:31711
+8. Click Save.
 
 # Building
 ## Ubuntu 16.04 / Raspbian Jessy
