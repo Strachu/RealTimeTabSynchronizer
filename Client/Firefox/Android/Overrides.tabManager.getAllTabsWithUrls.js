@@ -29,6 +29,9 @@
                 // The url is not available yet when update returns...
                 return new Promise(function(resolve) {
                     var currentTabUrlUpdatedClosure = function(tabId, changeInfo) {
+                        if (tabId != tab.id) {
+                            return;
+                        }
 
                         if (changeInfo.url) {
                             resolve();
