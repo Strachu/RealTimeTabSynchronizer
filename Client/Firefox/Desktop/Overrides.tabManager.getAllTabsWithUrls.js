@@ -13,7 +13,11 @@
             setTimeout(resolve, 100);
         }
 
-        setTimeout(resolve, 2000); // In case we lost onCreated event.
+        // In case we lost onCreated event:
+        setTimeout(function() {
+            browser.windows.onCreated.removeListener(listener);
+            return resolve();
+        }, 2000);
         return browser.windows.onCreated.addListener(listener);
     });
 
