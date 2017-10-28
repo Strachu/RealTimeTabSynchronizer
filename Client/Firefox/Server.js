@@ -158,7 +158,7 @@ function SynchronizerServer(browserId) {
 
                 return hub.server.changeTabUrl(browserId, tabId, url, isCausedByServer)
                     .catch(function() {
-                        return changeTracker.changeTabUrl(tabId, tabIndex, url);
+                        return changeTracker.changeTabUrl(requestId, tabId, tabIndex, url);
                     });
             } else {
                 return changeTracker.changeTabUrl(requestId, tabId, tabIndex, url);
