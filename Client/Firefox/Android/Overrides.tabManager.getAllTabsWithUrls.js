@@ -13,9 +13,11 @@
                         return resolve(tabs);
                     }
 
+                    var activeTab = tabs.find(function(x) { return x.active === true });
+
                     var promises = [];
                     for (var i = 0; i < tabs.length; i++) {
-                        promises.push(ensureTabUrlReady(tabs[i].id));
+                        promises.push(ensureTabUrlReady(tabs[i].id, activeTab.id));
                     }
 
                     Promise.all(promises).then(function() {
@@ -30,13 +32,14 @@
         return tabUrlsAlreadyReady.hasOwnProperty(tabId);
     }
 
-    function ensureTabUrlReady(tabId) {
+    function ensureTabUrlReady(tabId, originalActiveTabId) {
         if (hasUrlReady(tabId)) {
             return Promise.resolve();
         }
 
         return browser.tabs.update(tabId, { active: true })
             .then(function(tab) {
+                browser.tabs.update(originalActiveTabId, { active: true })
 
                 if (tab.url && tab.url !== "about:blank") {
                     tabUrlsAlreadyReady[tabId] = true;
