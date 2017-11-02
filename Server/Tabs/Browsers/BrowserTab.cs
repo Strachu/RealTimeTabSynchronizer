@@ -15,5 +15,10 @@ namespace RealTimeTabSynchronizer.Server.Tabs.Browsers
 
 		public int ServerTabId { get; set; }
 		public virtual TabData ServerTab { get; set; }
+
+		public override string ToString()
+		{
+			return $"{nameof(Id)}: {Id}, {nameof(BrowserTabId)}: {BrowserTabId}, {nameof(Index)}: {Index}, {nameof(Url)}: {Url}, {nameof(ServerTabId)}: {ServerTabId}";
+		}
 	}
 }

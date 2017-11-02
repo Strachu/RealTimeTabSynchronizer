@@ -361,6 +361,10 @@ namespace RealTimeTabSynchronizer.Server
 
 						var browserStateOnLastUpdate = (await mBrowserTabRepository.GetAllBrowsersTabs(browserId)).ToList();
 
+						mLogger.LogDebug(
+							$"Browser state on server: " + Environment.NewLine +
+							$"{String.Join(";\n", browserStateOnLastUpdate)}");
+
 						UpdateBrowserTabIdMapping(browserStateOnLastUpdate, currentlyOpenTabs, browserChanges);
 
 						await mUoW.SaveChangesAsync();
@@ -474,7 +478,11 @@ namespace RealTimeTabSynchronizer.Server
 
 			mLogger.LogDebug(
 				$"Changes to apply from the server: " + Environment.NewLine +
-				$"{String.Join(";\n", serverSideChanges)}");
+				$"{String.Join(";\n", serverSideChanges)}" + Environment.NewLine +
+				$"Browser state: " + Environment.NewLine +
+				$"{String.Join(";\n", browserStateOnLastUpdate)}" + Environment.NewLine +
+				$"Server state: " + Environment.NewLine +
+				$"{String.Join(";\n", serverState)}");
 
 			var idsByOldIndex = browserStateOnLastUpdate.ToDictionary(x => x.Index, x => x.BrowserTabId);
 			var idsByNewIndex = serverState
