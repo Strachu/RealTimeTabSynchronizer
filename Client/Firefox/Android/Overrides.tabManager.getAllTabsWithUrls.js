@@ -14,6 +14,9 @@
                     }
 
                     var activeTab = tabs.find(function(x) { return x.active === true });
+                    if (activeTab === undefined) {
+                        activeTab = tabs[0];
+                    }
 
                     var promises = [];
                     for (var i = 0; i < tabs.length; i++) {
