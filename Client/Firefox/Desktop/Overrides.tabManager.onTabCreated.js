@@ -3,6 +3,9 @@
 
     tabManager.handlerQueuePromise = new Promise(function(resolve) {
         return tabManager.getAllTabsWithUrls().then(function(tabs) {
+            console.log("Initializing tabs at browser init list...");
+            console.log("Found " + tabs.length + " tabs.");
+
             for (var i = 0; i < tabs.length; ++i) {
                 mTabsAtBrowserInit[tabs[i].id] = tabs[i];
             }
