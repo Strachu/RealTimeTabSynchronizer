@@ -63,34 +63,42 @@ function TabManager() {
         }
     }
 
+    var getTabCount = function() {
+        return browser.tabs.query({}).then(function(tabs) {
+            return tabs.length;
+        });
+    }
     this.addTab = function(tabIndex, url, createInBackground) {
-        var newTabProperties = {
-            index: tabIndex,
-            url: url,
-            active: !createInBackground
-        };
-
         createTabResultPendingCount++;
 
-        return browser.tabs.create(newTabProperties)
-            .then(
-                onTabCreated,
-                function() {
-                    // Firefox can refuse to create a tabs with some urls, in this case we try again to 
-                    // create (this time empty) tab so that the browser and server is still consistent with
-                    // the tabs except its url.
-                    delete newTabProperties.url;
+        return getTabCount()
+            .then(function(tabCount) {
+                var newTabProperties = {
+                    index: Math.min(tabIndex, tabCount),
+                    url: url,
+                    active: !createInBackground
+                };
 
-                    console.log("Failed to create a tab with url \"" + url + "\". Will try to create an empty one...");
+                return browser.tabs.create(newTabProperties)
+                    .then(onTabCreated,
+                        function() {
+                            // Firefox can refuse to create a tabs with some urls, in this case we try again to 
+                            // create (this time empty) tab so that the browser and server is still consistent with
+                            // the tabs except its url.
+                            delete newTabProperties.url;
 
-                    return browser.tabs.create(newTabProperties)
-                        .then(
-                            onTabCreated,
-                            function(error) {
-                                invokeAllCapturedHandlers();
-                                return Promise.reject(error);
-                            });
-                });
+                            console.log("Failed to create a tab with url \"" + url + "\". Will try to create an empty one...");
+
+                            return browser.tabs.create(newTabProperties)
+                                .then(
+                                    onTabCreated,
+                                    function(error) {
+                                        invokeAllCapturedHandlers();
+                                        return Promise.reject(error);
+                                    });
+                        });
+
+            })
     };
 
     var onTabCreated = function(tab) {
