@@ -164,7 +164,7 @@ function TabManager() {
         });
     };
 
-    this.getAllTabsWithUrls = function() {
+    this.getAllTabs = function(urlsRequired) {
         return browser.tabs.query({});
     }
 

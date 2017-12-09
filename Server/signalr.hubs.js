@@ -10,18 +10,18 @@
 
 /// <reference path="..\..\SignalR.Client.JS\Scripts\jquery-1.6.4.js" />
 /// <reference path="jquery.signalR.js" />
-(function ($, window, undefined) {
+(function($, window, undefined) {
     /// <param name="$" type="jQuery" />
     "use strict";
 
-    if (typeof ($.signalR) !== "function") {
+    if (typeof($.signalR) !== "function") {
         throw new Error("SignalR: SignalR is not loaded. Please ensure jquery.signalR-x.js is referenced before ~/signalr/js.");
     }
 
     var signalR = $.signalR;
 
     function makeProxyCallback(hub, callback) {
-        return function () {
+        return function() {
             // Call the client hub method
             callback.apply(hub, $.makeArray(arguments));
         };
@@ -64,56 +64,60 @@
         }
     }
 
-    $.hubConnection.prototype.createHubProxies = function () {
+    $.hubConnection.prototype.createHubProxies = function() {
         var proxies = {};
-        this.starting(function () {
+        this.starting(function() {
             // Register the hub proxies as subscribed
             // (instance, shouldSubscribe)
             registerHubProxies(proxies, true);
 
             this._registerSubscribedHubs();
-        }).disconnected(function () {
+        }).disconnected(function() {
             // Unsubscribe all hub proxies when we "disconnect".  This is to ensure that we do not re-add functional call backs.
             // (instance, shouldSubscribe)
             registerHubProxies(proxies, false);
         });
 
-        proxies['synchronizerHub'] = this.createHubProxy('synchronizerHub'); 
-        proxies['synchronizerHub'].client = { };
+        proxies['synchronizerHub'] = this.createHubProxy('synchronizerHub');
+        proxies['synchronizerHub'].client = {};
         proxies['synchronizerHub'].server = {
-            acknowledgeTabAdded: function (requestId, tabId, index) {
+            acknowledgeTabAdded: function(requestId, tabId, index) {
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["AcknowledgeTabAdded"], $.makeArray(arguments)));
-             },
+            },
 
-            activateTab: function (browserId, tabId, isAck) {
+            activateTab: function(browserId, tabId, isAck) {
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["ActivateTab"], $.makeArray(arguments)));
-             },
+            },
 
-            addTab: function (browserId, tabId, index, url, createInBackground) {
+            addTab: function(browserId, tabId, index, url, createInBackground) {
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["AddTab"], $.makeArray(arguments)));
-             },
+            },
 
-            changeTabUrl: function (browserId, tabId, newUrl, isAck) {
+            changeTabUrl: function(browserId, tabId, newUrl, isAck) {
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["ChangeTabUrl"], $.makeArray(arguments)));
-             },
+            },
 
-            closeTab: function (browserId, tabId) {
+            closeTab: function(browserId, tabId) {
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["CloseTab"], $.makeArray(arguments)));
-             },
+            },
 
-            moveTab: function (browserId, tabId, newIndex, isAck) {
+            doesSynchronizeNeedUrls: function(browserId) {
+                return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["DoesSynchronizeNeedUrls"], $.makeArray(arguments)));
+            },
+
+            moveTab: function(browserId, tabId, newIndex, isAck) {
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["MoveTab"], $.makeArray(arguments)));
-             },
+            },
 
-            synchronize: function (browserId, changesSinceLastConnection, currentlyOpenTabs) {
+            synchronize: function(browserId, changesSinceLastConnection, currentlyOpenTabs) {
                 return proxies['synchronizerHub'].invoke.apply(proxies['synchronizerHub'], $.merge(["Synchronize"], $.makeArray(arguments)));
-             }
+            }
         };
 
         return proxies;
     };
 
-    signalR.hub = $.hubConnection("/SignalR", { useDefaultPath: false });
+    signalR.hub = $.hubConnection("/signalR", { useDefaultPath: false });
     $.extend(signalR, signalR.hub.createHubProxies());
 
 }(window.jQuery, window));

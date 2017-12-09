@@ -317,6 +317,25 @@ namespace RealTimeTabSynchronizer.Server
 			mLogger.LogInformation("Finished activating a tab.");
 		}
 
+		public async Task<bool> DoesSynchronizeNeedUrls(Guid browserId)
+		{
+			await @lock.WaitAsync();
+			try
+			{
+				var browser = await mBrowserRepository.GetById(browserId);
+
+				// Tabs' urls are needed only on first initialization.
+				// Retrieval of urls on Firefox Android with many tabs is 
+				// very costly - 2-3 minutes for 150-200 tabs and the browser
+				// is useless in meantime.
+				return browser == null;
+			}
+			finally
+			{
+				@lock.Release();
+			}
+		}
+
 		public async Task Synchronize(
 			Guid browserId,
 			IReadOnlyCollection<object> changesSinceLastConnection,

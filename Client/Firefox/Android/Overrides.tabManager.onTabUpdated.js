@@ -23,10 +23,4 @@
 
         return promise;
     }
-
-    tabManager.getAllTabsWithUrls().then(function(tabs) {
-        for (var i = 0; i < tabs.length; ++i) {
-            storeTabUrl(tabs[i]);
-        }
-    });
 })();

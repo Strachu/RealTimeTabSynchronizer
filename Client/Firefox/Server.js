@@ -25,26 +25,32 @@ function SynchronizerServer(browserId) {
     }
 
     var synchronizeWithServer = function() {
-        return tabManager.getAllTabsWithUrls().then(function(allTabs) {
-            return tabManager.handlerQueuePromise.thenEvenIfError(function() {
-                return changeTracker.getAllChanges().then(function(allChanges) {
-                    return hub.server.synchronize(browserId, allChanges, allTabs)
-                        .done(function() {
-                            changeTracker.remove(allChanges)
-                                .then(function() {
-                                    initialized = true;
+        return hub.server.doesSynchronizeNeedUrls(browserId)
+            .done(function(urlsRequired) {
+                return tabManager.getAllTabs(urlsRequired).then(function(allTabs) {
+                    return tabManager.handlerQueuePromise.thenEvenIfError(function() {
+                        return changeTracker.getAllChanges().then(function(allChanges) {
+                            return hub.server.synchronize(browserId, allChanges, allTabs)
+                                .done(function() {
+                                    changeTracker.remove(allChanges)
+                                        .then(function() {
+                                            initialized = true;
 
-                                    replayAllEventsFromOfflineChangeTracker();
-                                });
-                        })
-                        .fail(function(error) {
-                            console.error("Failed to synchronize: " + error);
-                            return $.connection.hub.stop();
-                        })
-
+                                            replayAllEventsFromOfflineChangeTracker();
+                                        });
+                                })
+                                .fail(function(error) {
+                                    console.error("Failed to synchronize: " + error);
+                                    return $.connection.hub.stop();
+                                })
+                        });
+                    });
                 });
-            });
-        });
+            })
+            .fail(function(error) {
+                console.error("Failed to synchronize: " + error);
+                return $.connection.hub.stop();
+            })
     }
 
     var replayAllEventsFromOfflineChangeTracker = function() {

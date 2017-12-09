@@ -2,11 +2,16 @@
     var tabUrlsAlreadyReady = [];
     var mMultipleCallsPromise = Promise.resolve();
 
-    tabManager.getAllTabsWithUrls = function() {
+    var originalGetAllTabs = tabManager.getAllTabs;
+    tabManager.getAllTabs = function(urlsRequired) {
+        if (!urlsRequired) {
+            return originalGetAllTabs(urlsRequired);
+        }
+
         return mMultipleCallsPromise = mMultipleCallsPromise.then(function() {
             return new Promise(function(resolve) {
 
-                // TODO This is needed on android because tab.url is "about:blank" on all
+                // This is needed on android because tab.url is "about:blank" on all
                 // tabs not yet activated.
                 browser.tabs.query({}).then(function(tabs) {
                     if (tabs.every(function(tab) { return hasUrlReady(tab.id) })) {

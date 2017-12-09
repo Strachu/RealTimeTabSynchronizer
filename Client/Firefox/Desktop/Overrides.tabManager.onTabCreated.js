@@ -2,7 +2,7 @@
     var mTabsAtBrowserInit = {};
 
     tabManager.handlerQueuePromise = new Promise(function(resolve) {
-        return tabManager.getAllTabsWithUrls().then(function(tabs) {
+        return tabManager.getAllTabs(true).then(function(tabs) {
             console.log("Initializing tabs at browser init list...");
             console.log("Found " + tabs.length + " tabs.");
 
