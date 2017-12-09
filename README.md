@@ -95,6 +95,7 @@ sudo systemctl start RealTimeTabSynchronizer.Server.service
 1. Open Firefox.
 2. Browse to **about:config**.
 3. Find the option **xpinstall.signatures.required** and set its value to **false** by clicking *Toggle* if it is set to true.
+4. **Note:** Releases downloaded from official Mozilla website (as opposed to the one from Ubuntu repository for example) ignores this settings. In this case you should download special [unbranded build of Firefox](https://wiki.mozilla.org/Add-ons/Extension_Signing#Unbranded_Builds) until the extension reaches 1.0 version and get signed by Mozilla.
 1. [Download](#download) the binary release or [build](#building) the application yourself.
 2. Browse to *Bin/Firefox/Desktop* and double click *RealTimeTabSynchronizer.xpi*.
 3. Addon configuration page will automatically open if the addon has not been installed before.
